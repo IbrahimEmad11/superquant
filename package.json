@@ -1,12 +1,13 @@
 {
-  "name": "gemini-chatbot",
+  "name": "superquant",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev --turbo",
     "build": "tsx db/migrate && next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "migrate": "bunx drizzle-kit migrate"
   },
   "dependencies": {
     "@ai-sdk/google": "^0.0.51",
@@ -35,12 +36,13 @@
     "geist": "^1.3.1",
     "input-otp": "^1.2.4",
     "lucide-react": "^0.446.0",
-    "next": "15.0.0-canary.152",
-    "next-auth": "5.0.0-beta.22",
+    "mathjs": "^13.2.0",
+    "next": "^15.0.1",
+    "next-auth": "^5.0.0-beta.25",
     "next-themes": "^0.3.0",
     "postgres": "^3.4.4",
-    "react": "19.0.0-rc-7771d3a7-20240827",
-    "react-dom": "19.0.0-rc-7771d3a7-20240827",
+    "react": "^19.0.0-rc-1631855f-20241023",
+    "react-dom": "^19.0.0-rc-1631855f-20241023",
     "react-markdown": "^9.0.1",
     "remark-gfm": "^4.0.0",
     "server-only": "^0.0.1",
