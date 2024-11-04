@@ -7,14 +7,6 @@ import { ReactNode } from "react";
 import { BotIcon, UserIcon } from "./icons";
 import { Markdown } from "./markdown";
 import { PreviewAttachment } from "./preview-attachment";
-import { Weather } from "./weather";
-import { AuthorizePayment } from "../flights/authorize-payment";
-import { DisplayBoardingPass } from "../flights/boarding-pass";
-import { CreateReservation } from "../flights/create-reservation";
-import { FlightStatus } from "../flights/flight-status";
-import { ListFlights } from "../flights/list-flights";
-import { SelectSeats } from "../flights/select-seats";
-import { VerifyPayment } from "../flights/verify-payment";
 
 export const Message = ({
   chatId,
@@ -56,7 +48,7 @@ export const Message = ({
 
                 return (
                   <div key={toolCallId}>
-                    {toolName === "getWeather" ? (
+                    {/* {toolName === "getWeather" ? (
                       <Weather weatherAtLocation={result} />
                     ) : toolName === "displayFlightStatus" ? (
                       <FlightStatus flightStatus={result} />
@@ -76,13 +68,14 @@ export const Message = ({
                       <VerifyPayment result={result} />
                     ) : (
                       <div>{JSON.stringify(result, null, 2)}</div>
-                    )}
+                    )} */}
+                    <div>{JSON.stringify(result, null, 2)}</div>
                   </div>
                 );
               } else {
                 return (
                   <div key={toolCallId} className="skeleton">
-                    {toolName === "getWeather" ? (
+                    {/* {toolName === "getWeather" ? (
                       <Weather />
                     ) : toolName === "displayFlightStatus" ? (
                       <FlightStatus />
@@ -96,7 +89,7 @@ export const Message = ({
                       <AuthorizePayment />
                     ) : toolName === "displayBoardingPass" ? (
                       <DisplayBoardingPass />
-                    ) : null}
+                    ) : null} */}
                   </div>
                 );
               }

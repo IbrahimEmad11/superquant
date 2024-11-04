@@ -1,7 +1,5 @@
 import { motion } from "framer-motion";
-import Link from "next/link";
-
-import { LogoGoogle } from "./icons";
+import { LogoOpenAI } from "./icons";
 
 export const Overview = () => {
   return (
@@ -23,11 +21,11 @@ export const Overview = () => {
           This is a chatbot powered by SuperQuant AI. It uses the the latest LLM
           Models like{" "}
           <code className="rounded-sm bg-muted-foreground/15 px-1.5 py-0.5 inline-flex flex-row gap-2 items-center w-fit">
-            <LogoGoogle size={12} />
-            Google Gemini Pro
+            <LogoOpenAI size={12} />
+            OpenAI-O1
           </code>{" "}
-          and our own reasoning engine to provide you with an experience that
-          matches the experience of a data analyst.
+          and our own knowledge graph engine to provide you with an experience
+          that matches the experience of a data analyst.
         </p>
         <p>
           We also use cutting edge software techniques like streaming,
