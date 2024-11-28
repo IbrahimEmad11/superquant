@@ -7,6 +7,9 @@ import { ReactNode } from "react";
 import { BotIcon, UserIcon } from "./icons";
 import { Markdown } from "./markdown";
 import { PreviewAttachment } from "./preview-attachment";
+import { Weather } from "../generative-ui/weather";
+import { PieChartCard } from "../generative-ui/charts/pie-chart-card";
+import AnimatedShinyText from "../ui/animated-shiny-text";
 
 export const Message = ({
   chatId,
@@ -48,28 +51,20 @@ export const Message = ({
 
                 return (
                   <div key={toolCallId}>
-                    {/* {toolName === "getWeather" ? (
+                    {toolName === "getWeather" ? (
                       <Weather weatherAtLocation={result} />
-                    ) : toolName === "displayFlightStatus" ? (
-                      <FlightStatus flightStatus={result} />
-                    ) : toolName === "searchFlights" ? (
-                      <ListFlights chatId={chatId} results={result} />
-                    ) : toolName === "selectSeats" ? (
-                      <SelectSeats chatId={chatId} availability={result} />
-                    ) : toolName === "createReservation" ? (
-                      Object.keys(result).includes("error") ? null : (
-                        <CreateReservation reservation={result} />
-                      )
-                    ) : toolName === "authorizePayment" ? (
-                      <AuthorizePayment intent={result} />
-                    ) : toolName === "displayBoardingPass" ? (
-                      <DisplayBoardingPass boardingPass={result} />
-                    ) : toolName === "verifyPayment" ? (
-                      <VerifyPayment result={result} />
+                    ) : toolName === "showPieChart" ? (
+                      <PieChartCard
+                        title={result.title}
+                        caption={result.caption}
+                        data={result.data}
+                      />
                     ) : (
-                      <div>{JSON.stringify(result, null, 2)}</div>
-                    )} */}
-                    <div>{JSON.stringify(result, null, 2)}</div>
+                      // <div>{JSON.stringify(result, null, 2)}</div>
+                      <AnimatedShinyText className="inline-flex items-center justify-center transition ease-out hover:text-neutral-600 hover:duration-300 hover:dark:text-neutral-400">
+                        <span>Thinking...</span>
+                      </AnimatedShinyText>
+                    )}
                   </div>
                 );
               } else {

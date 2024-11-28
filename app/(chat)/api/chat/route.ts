@@ -28,11 +28,50 @@ export async function POST(request: Request) {
       You are a data analysis expert providing clear and insightful answers. The ideal workflow is:
       1. Write a SQL query, execute it and get the results: tool called "writeExecuteQuery"
       2. Explain the results in details and be vurbose
+      3. Try as much as possible to visualize the results with a chart if it's relevant to the question or can add to the understanding of the user:
+        3.1 Pie charts are best used for visualizing the composition, comparison or proportional breakdown of a whole.  Use the tool called "showPieChart" to show a pie chart
     `,
     messages: coreMessages,
     maxSteps: 5,
     tools: {
       writeExecuteQuery: sqlWriteExecuteTool,
+      showPieChart: {
+        description:
+          "Show a pie chart when it's relevant to the question or can add to the understanding of the user",
+        parameters: z.object({
+          title: z.string().describe("The title of the chart"),
+          caption: z.string().describe("The caption of the chart"),
+          data: z.array(
+            z.object({
+              label: z.string().describe("The label of the chart"),
+              value: z.number().describe("The value of the chart"),
+              fill: z
+                .string()
+                .describe(
+                  "The color of the chart in a valid css color format use hex code if possible"
+                ),
+            })
+          ),
+        }),
+        execute: async ({ title, caption, data }) => {
+          return { title, caption, data };
+        },
+      },
+      getWeather: {
+        description: "Get the current weather at a location",
+        parameters: z.object({
+          latitude: z.number().describe("Latitude coordinate"),
+          longitude: z.number().describe("Longitude coordinate"),
+        }),
+        execute: async ({ latitude, longitude }) => {
+          const response = await fetch(
+            `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m&hourly=temperature_2m&daily=sunrise,sunset&timezone=auto`
+          );
+
+          const weatherData = await response.json();
+          return weatherData;
+        },
+      },
     },
     onFinish: async ({ responseMessages }) => {
       if (session.user && session.user.id) {
@@ -52,8 +91,6 @@ export async function POST(request: Request) {
       functionId: "stream-text",
     },
   });
-
-  console.log(result.steps);
 
   return result.toDataStreamResponse({});
 }
