@@ -3,14 +3,14 @@
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import cx from "classnames";
 import Link from "next/link";
-import { useParams, usePathname } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import { User } from "next-auth";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import useSWR from "swr";
 
 import { Chat } from "@/db/schema";
-import { fetcher, getTitleFromChat } from "@/lib/utils";
+import { fetcher, generateUUID, getTitleFromChat } from "@/lib/utils";
 
 import {
   InfoIcon,
@@ -43,12 +43,16 @@ import {
   SheetHeader,
   SheetTitle,
 } from "../ui/sheet";
+import { useHistoryPanel } from "@/hooks/use-history-panel";
+import { createChatAction } from "@/app/(chat)/_lib/actions";
 
 export const History = ({ user }: { user: User | undefined }) => {
+  const router = useRouter();
   const { id } = useParams();
   const pathname = usePathname();
 
-  const [isHistoryVisible, setIsHistoryVisible] = useState(false);
+  const { isOpen: isHistoryVisible, setIsOpen: setIsHistoryVisible } =
+    useHistoryPanel();
   const {
     data: history,
     isLoading,
@@ -63,6 +67,13 @@ export const History = ({ user }: { user: User | undefined }) => {
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const handleCreateChat = async () => {
+    setIsHistoryVisible(false);
+    const id = generateUUID();
+    await createChatAction(id);
+    router.push(`/chat/${id}`);
+  };
 
   const handleDelete = async () => {
     const deletePromise = fetch(`/api/chat?id=${deleteId}`, {
@@ -126,13 +137,11 @@ export const History = ({ user }: { user: User | undefined }) => {
           <div className="mt-10 flex flex-col">
             {user && (
               <Button
+                onClick={handleCreateChat}
                 className="font-normal text-sm flex flex-row justify-between text-white"
-                asChild
               >
-                <Link href="/">
-                  <div>Start a new chat</div>
-                  <PencilEditIcon size={14} />
-                </Link>
+                <div>Start a new chat</div>
+                <PencilEditIcon size={14} />
               </Button>
             )}
 
@@ -169,13 +178,13 @@ export const History = ({ user }: { user: User | undefined }) => {
                     key={chat.id}
                     className={cx(
                       "flex flex-row items-center gap-6 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-md pr-2",
-                      { "bg-zinc-200 dark:bg-zinc-700": chat.id === id },
+                      { "bg-zinc-200 dark:bg-zinc-700": chat.id === id }
                     )}
                   >
                     <Button
                       variant="ghost"
                       className={cx(
-                        "hover:bg-zinc-200 dark:hover:bg-zinc-700 justify-between p-0 text-sm font-normal flex flex-row items-center gap-2 pr-2 w-full transition-none",
+                        "hover:bg-zinc-200 dark:hover:bg-zinc-700 justify-between p-0 text-sm font-normal flex flex-row items-center gap-2 pr-2 w-full transition-none"
                       )}
                       asChild
                     >

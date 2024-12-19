@@ -1,11 +1,12 @@
 import { z } from "zod";
 import { openai } from "@ai-sdk/openai";
-import { convertToCoreMessages, Message, streamText, tool } from "ai";
+import { convertToCoreMessages, Message, streamText } from "ai";
 import { auth } from "@/app/(auth)/auth";
 import { deleteChatById, getChatById, saveChat } from "@/db/queries";
 
 // LLM tools
-import { sqlWriteExecuteTool } from "./_lib/tools/sql-write-execute";
+import { generateSqlWriteExecuteTool } from "./_lib/tools/sql-write-execute";
+import { getChatDatabase } from "@/db/repositories/databases";
 
 export async function POST(request: Request) {
   const { id, messages }: { id: string; messages: Array<Message> } =
@@ -21,6 +22,13 @@ export async function POST(request: Request) {
     (message) => message.content.length > 0
   );
 
+  const database = await getChatDatabase(id);
+  console.log(database);
+
+  if (!database) {
+    return new Response("Database not found", { status: 404 });
+  }
+
   const result = await streamText({
     model: openai("gpt-3.5-turbo"),
     temperature: 0.5,
@@ -34,7 +42,7 @@ export async function POST(request: Request) {
     messages: coreMessages,
     maxSteps: 5,
     tools: {
-      writeExecuteQuery: sqlWriteExecuteTool,
+      writeExecuteQuery: await generateSqlWriteExecuteTool(database),
       showPieChart: {
         description:
           "Show a pie chart when it's relevant to the question or can add to the understanding of the user",

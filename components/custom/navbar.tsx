@@ -23,12 +23,14 @@ export const Navbar = async () => {
         <div className="flex flex-row gap-4 items-center">
           <History user={session?.user} />
           <div className="flex flex-row gap-2 items-center">
-            <Image
-              src="/images/superquant-logo.svg"
-              height={15}
-              width={15}
-              alt="superquant logo"
-            />
+            <Link href="/">
+              <Image
+                src="/images/superquant-logo.svg"
+                height={15}
+                width={15}
+                alt="superquant logo"
+              />
+            </Link>
             <div className="text-zinc-500">
               <SlashIcon size={16} />
             </div>

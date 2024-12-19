@@ -11,7 +11,7 @@ import { user, chat, User, reservation } from "./schema";
 // use the Drizzle adapter for Auth.js / NextAuth
 // https://authjs.dev/reference/adapter/drizzle
 let client = postgres(`${process.env.POSTGRES_URL!}?sslmode=require`);
-let db = drizzle(client);
+export let db = drizzle(client);
 
 export async function getUser(email: string): Promise<Array<User>> {
   try {
@@ -30,6 +30,23 @@ export async function createUser(email: string, password: string) {
     return await db.insert(user).values({ email, password: hash });
   } catch (error) {
     console.error("Failed to create user in database");
+    throw error;
+  }
+}
+
+export async function createChat({
+  id,
+  userId,
+}: {
+  id: string;
+  userId: string;
+}) {
+  try {
+    return await db
+      .insert(chat)
+      .values({ id, userId, createdAt: new Date(), messages: [] });
+  } catch (error) {
+    console.error("Failed to create chat in database");
     throw error;
   }
 }
