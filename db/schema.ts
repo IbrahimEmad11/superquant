@@ -50,7 +50,7 @@ export const database = pgTable("Database", {
   connectionString: varchar("connectionString", { length: 256 }).notNull(),
   chatId: uuid("chatId")
     .notNull()
-    .references(() => chat.id),
+    .references(() => chat.id, { onDelete: "cascade" }),
 });
 
 export type Database = InferSelectModel<typeof database>;

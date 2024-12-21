@@ -7,13 +7,6 @@ import { QuerySqlTool } from "langchain/tools/sql";
 import { createSqlQueryChain } from "langchain/chains/sql_db";
 import { Database } from "@/db/schema";
 
-interface DatabaseResource {
-  name: string;
-  description: string;
-  type: "sqlite" | "postgres" | "mysql" | "mssql";
-  connectionString: string;
-}
-
 export async function generateSqlWriteExecuteTool(database: Database) {
   const sqlWriteExecuteTool = tool({
     description: "Write a SQL query to answer the question",
