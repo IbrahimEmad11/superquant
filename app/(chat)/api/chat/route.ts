@@ -38,6 +38,8 @@ export async function POST(request: Request) {
       2. Explain the results in details and be vurbose
       3. Try as much as possible to visualize the results with a chart if it's relevant to the question or can add to the understanding of the user:
         3.1 Pie charts are best used for visualizing the composition, comparison or proportional breakdown of a whole.  Use the tool called "showPieChart" to show a pie chart
+        3.2 Bar charts are best used for visualizing the comparison of different categories or values. Use the tool called "showBarChart" to show a bar chart
+        3.3 Line charts are best used for visualizing trends over time. Use the tool called "showLineChart" to show a line chart
     `,
     messages: coreMessages,
     maxSteps: 5,
@@ -46,6 +48,50 @@ export async function POST(request: Request) {
       showPieChart: {
         description:
           "Show a pie chart when it's relevant to the question or can add to the understanding of the user",
+        parameters: z.object({
+          title: z.string().describe("The title of the chart"),
+          caption: z.string().describe("The caption of the chart"),
+          data: z.array(
+            z.object({
+              label: z.string().describe("The label of the chart"),
+              value: z.number().describe("The value of the chart"),
+              fill: z
+                .string()
+                .describe(
+                  "The color of the chart in a valid css color format use hex code if possible"
+                ),
+            })
+          ),
+        }),
+        execute: async ({ title, caption, data }) => {
+          return { title, caption, data };
+        },
+      },
+      showBarChart: {
+        description:
+          "Show a bar chart when it's relevant to the question or can add to the understanding of the user",
+        parameters: z.object({
+          title: z.string().describe("The title of the chart"),
+          caption: z.string().describe("The caption of the chart"),
+          data: z.array(
+            z.object({
+              label: z.string().describe("The label of the chart"),
+              value: z.number().describe("The value of the chart"),
+              fill: z
+                .string()
+                .describe(
+                  "The color of the chart in a valid css color format use hex code if possible"
+                ),
+            })
+          ),
+        }),
+        execute: async ({ title, caption, data }) => {
+          return { title, caption, data };
+        },
+      },
+      showLineChart: {
+        description:
+          "Show a line chart when it's relevant to the question or can add to the understanding of the user",
         parameters: z.object({
           title: z.string().describe("The title of the chart"),
           caption: z.string().describe("The caption of the chart"),

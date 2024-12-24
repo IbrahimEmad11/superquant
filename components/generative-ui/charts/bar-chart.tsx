@@ -1,6 +1,6 @@
 "use client";
 
-import { Pie, PieChart } from "recharts";
+import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
 
 import {
   Card,
@@ -15,7 +15,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 
-interface PieChartCardProps {
+interface BarChartProps {
   title: string;
   caption: string;
   data: {
@@ -25,31 +25,30 @@ interface PieChartCardProps {
   }[];
 }
 
-export function PieChartCard({ title, caption, data }: PieChartCardProps) {
+export function BarChartCard({ title, caption, data }: BarChartProps) {
   return (
-    <Card className="flex flex-col">
-      <CardHeader className="items-center pb-0">
+    <Card>
+      <CardHeader>
         <CardTitle>{title}</CardTitle>
         <CardDescription>{caption}</CardDescription>
       </CardHeader>
-      <CardContent className="flex-1 pb-0">
-        <ChartContainer
-          config={{}}
-          className="mx-auto aspect-square max-h-[250px]"
-        >
-          <PieChart>
+      <CardContent>
+        <ChartContainer config={{}}>
+          <BarChart accessibilityLayer data={data}>
+            <CartesianGrid vertical={false} />
+            <XAxis
+              dataKey="label"
+              tickLine={false}
+              tickMargin={10}
+              axisLine={false}
+              tickFormatter={(value) => value.slice(0, 6)}
+            />
             <ChartTooltip
               cursor={false}
               content={<ChartTooltipContent hideLabel />}
             />
-            <Pie
-              data={data}
-              dataKey="value"
-              nameKey="label"
-              innerRadius={60}
-              strokeWidth={5}
-            />
-          </PieChart>
+            <Bar dataKey="value" radius={8} />
+          </BarChart>
         </ChartContainer>
       </CardContent>
     </Card>

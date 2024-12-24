@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Database } from "@/db/schema";
 import { useDatabaseConnectionDialog } from "@/hooks/use-database-connection-dialog";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -37,6 +38,7 @@ export function DatabaseConnectionDialog({
   chatId,
   database,
 }: DatabaseConnectionDialogProps) {
+  const router = useRouter();
   const [connectionInitialized, setConnectionInitialized] = useState(false);
 
   const [databaseProvider, _] = useState<Database["type"]>(
@@ -90,7 +92,15 @@ export function DatabaseConnectionDialog({
   };
 
   return (
-    <Dialog open={isOpen}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(newVal) => {
+        if (newVal === false) {
+          setIsOpen(false);
+          router.replace("/");
+        }
+      }}
+    >
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Connect to a database</DialogTitle>
@@ -131,6 +141,7 @@ export function DatabaseConnectionDialog({
               placeholder="Enter your database description"
               value={databaseDescription}
               onChange={(e) => setDatabaseDescription(e.target.value)}
+              maxLength={200}
             />
           </div>
           <div className="flex flex-col gap-4">

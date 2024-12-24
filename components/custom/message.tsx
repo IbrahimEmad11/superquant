@@ -8,8 +8,12 @@ import { BotIcon, UserIcon } from "./icons";
 import { Markdown } from "./markdown";
 import { PreviewAttachment } from "./preview-attachment";
 import { Weather } from "../generative-ui/weather";
-import { PieChartCard } from "../generative-ui/charts/pie-chart-card";
 import AnimatedShinyText from "../ui/animated-shiny-text";
+import {
+  BarChartCard,
+  LineChartCard,
+  PieChartCard,
+} from "../generative-ui/charts";
 
 export const Message = ({
   chatId,
@@ -49,12 +53,26 @@ export const Message = ({
               if (state === "result") {
                 const { result } = toolInvocation;
 
+                console.log(result);
+
                 return (
                   <div key={toolCallId}>
                     {toolName === "getWeather" ? (
                       <Weather weatherAtLocation={result} />
                     ) : toolName === "showPieChart" ? (
                       <PieChartCard
+                        title={result.title}
+                        caption={result.caption}
+                        data={result.data}
+                      />
+                    ) : toolName === "showBarChart" ? (
+                      <BarChartCard
+                        title={result.title}
+                        caption={result.caption}
+                        data={result.data}
+                      />
+                    ) : toolName === "showLineChart" ? (
+                      <LineChartCard
                         title={result.title}
                         caption={result.caption}
                         data={result.data}
