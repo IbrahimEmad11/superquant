@@ -6,11 +6,11 @@ import { useEffect, useState } from "react";
 
 import { Message as PreviewMessage } from "@/components/custom/message";
 import { useScrollToBottom } from "@/components/custom/use-scroll-to-bottom";
+import { Database } from "@/db/schema";
+import { useDatabaseConnectionDialog } from "@/hooks/use-database-connection-dialog";
 
 import { MultimodalInput } from "./multimodal-input";
 import { Overview } from "./overview";
-import { Database } from "@/db/schema";
-import { useDatabaseConnectionDialog } from "@/hooks/use-database-connection-dialog";
 
 export function Chat({
   id,

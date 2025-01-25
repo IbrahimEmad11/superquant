@@ -1,5 +1,9 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
+
 import {
   connectDatabaseToChat,
   testDatabaseConnection,
@@ -19,9 +23,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Database } from "@/db/schema";
 import { useDatabaseConnectionDialog } from "@/hooks/use-database-connection-dialog";
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { toast } from "sonner";
 
 interface DatabaseConnectionDialogProps {
   chatId: string;
@@ -34,7 +35,7 @@ const databaseProvidersOptions = [
   { label: "MySQL", value: "mysql" },
 ];
 
-export function DatabaseConnectionDialog({
+export default function DatabaseConnectionDialog({
   chatId,
   database,
 }: DatabaseConnectionDialogProps) {

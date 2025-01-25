@@ -2,7 +2,7 @@ import { useEffect, useRef, RefObject } from "react";
 
 export function useScrollToBottom<T extends HTMLElement>(): [
   RefObject<T>,
-  RefObject<T>,
+  RefObject<T>
 ] {
   const containerRef = useRef<T>(null);
   const endRef = useRef<T>(null);
@@ -12,8 +12,17 @@ export function useScrollToBottom<T extends HTMLElement>(): [
     const end = endRef.current;
 
     if (container && end) {
+      // Initial scroll to bottom
+      end.scrollIntoView({ behavior: "instant", block: "end" });
+
       const observer = new MutationObserver(() => {
-        end.scrollIntoView({ behavior: "instant", block: "end" });
+        // Only scroll if user is already near bottom
+        const { scrollTop, scrollHeight, clientHeight } = container;
+        const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+
+        if (isNearBottom) {
+          end.scrollIntoView({ behavior: "instant", block: "end" });
+        }
       });
 
       observer.observe(container, {

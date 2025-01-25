@@ -1,12 +1,14 @@
-import { z } from "zod";
 import { openai } from "@ai-sdk/openai";
 import { convertToCoreMessages, Message, streamText } from "ai";
+import { z } from "zod";
+
 import { auth } from "@/app/(auth)/auth";
 import { deleteChatById, getChatById, saveChat } from "@/db/queries";
 
 // LLM tools
-import { generateSqlWriteExecuteTool } from "./_lib/tools/sql-write-execute";
 import { getChatDatabase } from "@/db/repositories/databases";
+
+import { generateSqlWriteExecuteTool } from "./_lib/tools/sql-write-execute";
 
 export async function POST(request: Request) {
   const { id, messages }: { id: string; messages: Array<Message> } =
@@ -34,6 +36,7 @@ export async function POST(request: Request) {
     temperature: 0.5,
     system: `
       You are a data analysis expert providing clear and insightful answers. The ideal workflow is:
+      0. The data you have access to is in the database called ${database.name} and the description of the data is: ${database.description}. It's a ${database.type} database.
       1. Write a SQL query, execute it and get the results: tool called "writeExecuteQuery"
       2. Explain the results in details and be vurbose
       3. Try as much as possible to visualize the results with a chart if it's relevant to the question or can add to the understanding of the user:

@@ -1,13 +1,15 @@
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { History, Plus } from "lucide-react";
-import { generateUUID } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+
 import { Badge } from "@/components/ui/badge";
-import { createChatAction } from "./_lib/actions";
+import { Button } from "@/components/ui/button";
 import { useHistoryPanel } from "@/hooks/use-history-panel";
+import { generateUUID } from "@/lib/utils";
+
+import { createChatAction } from "./_lib/actions";
 
 export default function Page() {
   const router = useRouter();

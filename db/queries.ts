@@ -6,6 +6,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
 import { user, chat, User, reservation } from "./schema";
+import { Node } from "@xyflow/react";
 
 // Optionally, if not using email/pass login, you can
 // use the Drizzle adapter for Auth.js / NextAuth
@@ -114,6 +115,19 @@ export async function getChatById({ id }: { id: string }) {
     console.error("Failed to get chat by id from database");
     throw error;
   }
+}
+
+export async function updateChatDashboard({
+  chatId,
+  dashboard,
+}: {
+  chatId: string;
+  dashboard: Node[];
+}) {
+  return await db
+    .update(chat)
+    .set({ dashboard: JSON.stringify(dashboard) })
+    .where(eq(chat.id, chatId));
 }
 
 export async function createReservation({

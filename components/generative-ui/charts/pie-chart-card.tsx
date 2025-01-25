@@ -1,6 +1,6 @@
 "use client";
 
-import { Pie, PieChart } from "recharts";
+import { Pie, PieChart, ResponsiveContainer } from "recharts";
 
 import {
   Card,
@@ -15,6 +15,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 
+import ChartButton from "@/components/custom/chart-button";
 interface PieChartCardProps {
   title: string;
   caption: string;
@@ -23,34 +24,53 @@ interface PieChartCardProps {
     value: number;
     fill: string;
   }[];
+  noAddButton?: boolean;
 }
 
-export function PieChartCard({ title, caption, data }: PieChartCardProps) {
+export function PieChartCard({
+  title,
+  caption,
+  data,
+  noAddButton,
+}: PieChartCardProps) {
   return (
-    <Card className="flex flex-col">
+    <Card className="flex flex-col w-full h-full">
       <CardHeader className="items-center pb-0">
         <CardTitle>{title}</CardTitle>
         <CardDescription>{caption}</CardDescription>
       </CardHeader>
-      <CardContent className="flex-1 pb-0">
+      <CardContent className="flex-1 pb-0 relative">
         <ChartContainer
           config={{}}
-          className="mx-auto aspect-square max-h-[250px]"
+          className="mx-auto aspect-square max-h-[350px]"
         >
-          <PieChart>
-            <ChartTooltip
-              cursor={false}
-              content={<ChartTooltipContent hideLabel />}
-            />
-            <Pie
-              data={data}
-              dataKey="value"
-              nameKey="label"
-              innerRadius={60}
-              strokeWidth={5}
-            />
-          </PieChart>
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <ChartTooltip
+                cursor={false}
+                content={<ChartTooltipContent hideLabel />}
+              />
+              <Pie
+                data={data}
+                dataKey="value"
+                nameKey="label"
+                innerRadius={60}
+                strokeWidth={5}
+              />
+            </PieChart>
+          </ResponsiveContainer>
         </ChartContainer>
+        {!noAddButton && (
+          <ChartButton
+            className="absolute bottom-2 right-2"
+            chart={{
+              type: "pie",
+              title,
+              caption,
+              data,
+            }}
+          />
+        )}
       </CardContent>
     </Card>
   );

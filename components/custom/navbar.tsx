@@ -3,9 +3,7 @@ import Link from "next/link";
 
 import { auth, signOut } from "@/app/(auth)/auth";
 
-import { History } from "./history";
-import { SlashIcon } from "./icons";
-import { ThemeToggle } from "./theme-toggle";
+import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import {
   DropdownMenu,
@@ -13,6 +11,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
+
+import { History } from "./history";
+import { SlashIcon } from "./icons";
+import { ThemeToggle } from "./theme-toggle";
+import ChatSessionTools from "./chat-session-tools";
 
 export const Navbar = async () => {
   let session = await auth();
@@ -35,51 +38,60 @@ export const Navbar = async () => {
               <SlashIcon size={16} />
             </div>
             <div className="text-sm dark:text-zinc-300 truncate w-28 md:w-fit">
-              SuperQuant AI Chat
+              SuperQuant AI{" "}
+              <Badge className="ml-2 bg-primary/30 border border-primary/50 text-primary opacity-50 rounded-sm">
+                Alpha
+              </Badge>
             </div>
           </div>
         </div>
 
-        {session ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                className="py-1.5 px-2 h-fit font-normal"
-                variant="secondary"
-              >
-                {session.user?.email}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem>
-                <ThemeToggle />
-              </DropdownMenuItem>
-              <DropdownMenuItem className="p-1 z-50">
-                <form
-                  className="w-full"
-                  action={async () => {
-                    "use server";
-
-                    await signOut({
-                      redirectTo: "/",
-                    });
-                  }}
+        <div className="flex flex-row gap-2 items-center">
+          <ChatSessionTools />
+          {session ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  className="py-1.5 px-2 h-fit font-normal"
+                  variant="secondary"
                 >
-                  <button
-                    type="submit"
-                    className="w-full text-left px-1 py-0.5 text-red-500"
+                  {session.user?.email}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem>
+                  <ThemeToggle />
+                </DropdownMenuItem>
+                <DropdownMenuItem className="p-1 z-50">
+                  <form
+                    className="w-full"
+                    action={async () => {
+                      "use server";
+
+                      await signOut({
+                        redirectTo: "/",
+                      });
+                    }}
                   >
-                    Sign out
-                  </button>
-                </form>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : (
-          <Button className="py-1.5 px-2 h-fit font-normal text-white" asChild>
-            <Link href="/login">Login</Link>
-          </Button>
-        )}
+                    <button
+                      type="submit"
+                      className="w-full text-left px-1 py-0.5 text-red-500"
+                    >
+                      Sign out
+                    </button>
+                  </form>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button
+              className="py-1.5 px-2 h-fit font-normal text-white"
+              asChild
+            >
+              <Link href="/login">Login</Link>
+            </Button>
+          )}
+        </div>
       </div>
     </>
   );

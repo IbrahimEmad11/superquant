@@ -20,16 +20,16 @@ import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
 
 const suggestedActions = [
-  {
-    title: "What is the distribution",
-    label: "of genders in the students?",
-    action: "What is the distribution of genders in the students?",
-  },
-  {
-    title: "Calculate the average",
-    label: "monthly income in the data",
-    action: "What is the average monthly income in the data?",
-  },
+  // {
+  //   title: "What is the distribution",
+  //   label: "of genders in the students?",
+  //   action: "What is the distribution of genders in the students?",
+  // },
+  // {
+  //   title: "Calculate the average",
+  //   label: "monthly income in the data",
+  //   action: "What is the average monthly income in the data?",
+  // },
 ];
 
 export function MultimodalInput({

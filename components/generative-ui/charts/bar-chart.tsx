@@ -14,6 +14,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import ChartButton from "@/components/custom/chart-button";
 
 interface BarChartProps {
   title: string;
@@ -23,11 +24,17 @@ interface BarChartProps {
     value: number;
     fill: string;
   }[];
+  noAddButton?: boolean;
 }
 
-export function BarChartCard({ title, caption, data }: BarChartProps) {
+export function BarChartCard({
+  title,
+  caption,
+  data,
+  noAddButton,
+}: BarChartProps) {
   return (
-    <Card>
+    <Card className="flex flex-col w-full h-full">
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         <CardDescription>{caption}</CardDescription>
@@ -50,6 +57,17 @@ export function BarChartCard({ title, caption, data }: BarChartProps) {
             <Bar dataKey="value" radius={8} />
           </BarChart>
         </ChartContainer>
+        {!noAddButton && (
+          <ChartButton
+            className="absolute bottom-2 right-2"
+            chart={{
+              type: "bar",
+              title,
+              caption,
+              data,
+            }}
+          />
+        )}
       </CardContent>
     </Card>
   );

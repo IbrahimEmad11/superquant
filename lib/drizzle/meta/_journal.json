@@ -22,6 +22,13 @@
       "when": 1734764363179,
       "tag": "0002_small_preak",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1735115820932,
+      "tag": "0003_past_scarecrow",
+      "breakpoints": true
     }
   ]
 }
