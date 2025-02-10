@@ -6,6 +6,8 @@ import { SqlDatabase } from "langchain/sql_db";
 import { QuerySqlTool } from "langchain/tools/sql";
 import { createSqlQueryChain } from "langchain/chains/sql_db";
 import { Database } from "@/db/schema";
+import { SQL } from "drizzle-orm";
+
 
 export async function generateSqlWriteExecuteTool(database: Database) {
   const sqlWriteExecuteTool = tool({
@@ -14,10 +16,21 @@ export async function generateSqlWriteExecuteTool(database: Database) {
       question: z.string().describe("The question to answer"),
     }),
     execute: async ({ question }) => {
-      const datasource = new DataSource({
-        type: database.type as any,
-        database: database.connectionString,
-      });
+      let datasource: DataSource;
+
+      if (database.type === "sqlite") {
+        datasource = new DataSource({
+          type: "sqlite",
+          database: database.connectionString, // SQLite uses 'database'
+        });
+      } else {
+        datasource = new DataSource({
+          type: database.type as any,
+          url: database.connectionString, // PostgreSQL & MySQL use 'url'
+          synchronize: false,
+          ssl: database.connectionString.includes("sslmode=require") ? { rejectUnauthorized: false } : false,
+        });
+      }
       const db = await SqlDatabase.fromDataSourceParams({
         appDataSource: datasource,
       });
@@ -29,7 +42,7 @@ export async function generateSqlWriteExecuteTool(database: Database) {
       const writeQuery = await createSqlQueryChain({
         llm,
         db,
-        dialect: "sqlite",
+        dialect: database.type as "sqlite" | "postgres" | "mysql",
       });
 
       const chain = writeQuery.pipe(executeQuery);

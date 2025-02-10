@@ -7,7 +7,7 @@ import { ThemeProvider } from "@/components/custom/theme-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SuperQaunt | AI Data Analyst",
+  title: "SuperQuant | AI Data Analyst",
   description:
     "SuperQuant - Replace the need for data analysts in your company with AI",
 };

@@ -42,7 +42,7 @@ export default function DatabaseConnectionDialog({
   const router = useRouter();
   const [connectionInitialized, setConnectionInitialized] = useState(false);
 
-  const [databaseProvider, _] = useState<Database["type"]>(
+  const [databaseProvider, setDatabaseProvider] = useState<Database["type"]>(
     database?.type || "sqlite"
   );
   const [databaseName, setDatabaseName] = useState<Database["name"]>(
@@ -116,7 +116,7 @@ export default function DatabaseConnectionDialog({
               {databaseProvidersOptions.map((option) => (
                 <div
                   key={option.value}
-                  // onClick={() => setDatabaseProvider(option.value)}
+                  onClick={() => setDatabaseProvider(option.value)}
                   className={cn(
                     "py-2 px-4 border border-muted-foreground rounded-md cursor-pointer text-muted-foreground transition-all duration-500",
                     databaseProvider === option.value &&
