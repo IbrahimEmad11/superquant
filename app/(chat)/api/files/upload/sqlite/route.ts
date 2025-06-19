@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import fs from "fs/promises";
-import path from "path";
-import process from "process";
 import { put } from "@vercel/blob";
 import { z } from "zod";
-
-const TEMP_FOLDER = path.join(process.cwd(), "tmp"); 
+import { auth } from "@/app/(auth)/auth"; 
 
 const FileSchema = z.object({
   file: z
@@ -17,14 +13,23 @@ const FileSchema = z.object({
       (file) =>
         ["application/x-sqlite3", "application/octet-stream"].includes(
           file.type
-        ) || file.name.endsWith(".sqlite") || file.name.endsWith(".db"),
+        ) || 
+        file.name.endsWith(".sqlite") || 
+        file.name.endsWith(".db") ||
+        file.name.endsWith(".sqlite3") ||
+        file.name.endsWith(".db3"),
       {
-        message: "Invalid file type. Must be a SQLite database file (.sqlite, .db).",
+        message: "Invalid file type. Must be a SQLite database file (.sqlite, .db, .sqlite3, .db3).",
       }
     ),
 });
 
 export async function POST(req: NextRequest) {
+
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
@@ -32,6 +37,7 @@ export async function POST(req: NextRequest) {
     if (!file) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
     }
+
     const validation = FileSchema.safeParse({ file });
     if (!validation.success) {
       const errorMessage = validation.error.errors
@@ -40,23 +46,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: errorMessage }, { status: 400 });
     }
 
-    await fs.mkdir(TEMP_FOLDER, { recursive: true });
+    // Generate unique filename to avoid conflicts
+    const timestamp = Date.now();
+    const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const uniqueFileName = `sqlite-${session.user.id}-${timestamp}-${sanitizedName}`;
 
-    const filePath = path.join(TEMP_FOLDER, file.name);
-    const fileBuffer = await file.arrayBuffer();
-    await fs.writeFile(filePath, Buffer.from(fileBuffer));
+    // Upload to Vercel Blob with public access
+    const blob = await put(uniqueFileName, file, { 
+      access: "public",
+      addRandomSuffix: false,
+    });
 
-    // Upload file to Vercel Blob but do NOT use the URL
-    try {
-      await put(file.name, file, { access: "public" });
-      console.log("Uploaded SQLite file to Vercel Blob");
-    } catch (blobError) {
-      console.error("Vercel Blob Upload Failed:", blobError);
-    }
+    console.log("Successfully uploaded SQLite file to Vercel Blob:", blob.url);
 
-    return NextResponse.json({ success: true, path: filePath });
+    // Return the blob URL as the connection string
+    return NextResponse.json({ 
+      success: true, 
+      path: blob.url,
+      filename: file.name,
+      size: file.size
+    });
+
   } catch (error) {
-    console.error("Error saving SQLite file:", error);
-    return NextResponse.json({ error: "Failed to save file" }, { status: 500 });
+    console.error("Error uploading SQLite file:", error);
+    return NextResponse.json({ 
+      error: "Failed to upload file. Please try again." 
+    }, { status: 500 });
   }
 }
