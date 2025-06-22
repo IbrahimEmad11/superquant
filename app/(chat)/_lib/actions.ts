@@ -1,11 +1,15 @@
 "use server";
 
-import { auth } from "@/app/(auth)/auth";
-import { createChat } from "@/db/queries";
-import { createDatabase } from "@/db/repositories/databases";
+import { eq, and } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 import { DataSource } from "typeorm";
-import { generateUUID } from "@/lib/utils";
+
+import { auth } from "@/app/(auth)/auth";
+import { db , createChat } from "@/db/queries";
+import { createDatabase } from "@/db/repositories/databases";
+import { chat } from "@/db/schema";
 import { InMemorySQLiteHandler } from "@/lib/sqlite-handler";
+import { generateUUID } from "@/lib/utils";
 
 export async function createChatAction(id: string) {
   const session = await auth();
@@ -106,5 +110,38 @@ export async function connectDatabaseToChat(
     return { 
       error: error instanceof Error ? error.message : "Failed to create database" 
     };
+  }
+}
+
+type ShareMode = 'private' | 'dashboard' | 'full';
+
+export async function updateChatSharing(chatId: string, mode: ShareMode) {
+  const session = await auth();
+  if (!session?.user?.id) { return { error: "Unauthorized" }; }
+
+  try {
+    const existingChat = await db.query.chat.findFirst({
+      where: and(eq(chat.id, chatId), eq(chat.userId, session.user.id)),
+    });
+
+    if (!existingChat) { return { error: "Chat not found." }; }
+
+    // If sharing is being enabled, use existing shareId or create a new one.
+    // If sharing is being turned off, nullify it.
+    const isTurningOnSharing = mode === 'dashboard' || mode === 'full';
+    const newShareId = isTurningOnSharing ? (existingChat.shareId || generateUUID()) : null;
+
+    await db.update(chat)
+      .set({
+        shareMode: mode,
+        shareId: newShareId,
+      })
+      .where(eq(chat.id, chatId));
+
+    revalidatePath(`/chat/${chatId}`);
+    return { success: true, shareId: newShareId, shareMode: mode };
+  } catch (error) {
+    console.error("Failed to update chat sharing:", error);
+    return { error: "An unexpected error occurred." };
   }
 }

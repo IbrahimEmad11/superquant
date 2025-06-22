@@ -1,5 +1,6 @@
 "use client";
 
+import { X, Upload, Loader } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
@@ -23,7 +24,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Database } from "@/db/schema";
 import { useDatabaseConnectionDialog } from "@/hooks/use-database-connection-dialog";
 import { cn } from "@/lib/utils";
-import { X, Upload, Loader } from "lucide-react";
 
 interface DatabaseConnectionDialogProps {
   chatId: string;
@@ -224,17 +224,17 @@ return (
                 <div className="flex items-center gap-2">
                   {isUploading ? (
                     <>
-                      <Loader className="animate-spin w-5 h-5" />
+                      <Loader className="animate-spin size-5" />
                       <span>Uploading...</span>
                     </>
                   ) : uploadedFileName ? (
                     <>
-                      <Upload className="w-5 h-5" />
+                      <Upload className="size-5" />
                       <span>{uploadedFileName}</span>
                     </>
                   ) : (
                     <>
-                      <Upload className="w-5 h-5" />
+                      <Upload className="size-5" />
                       <span>Choose a file</span>
                     </>
                   )}
@@ -245,7 +245,7 @@ return (
                     onClick={handleCancelUpload}
                     className="text-white hover:text-gray-400 transition-all"
                   >
-                    <X className="w-4 h-4" /> 
+                    <X className="size-4" /> 
                   </button>
                 )}
               </Label>

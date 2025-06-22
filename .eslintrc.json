@@ -9,7 +9,7 @@
   "plugins": ["import", "tailwindcss"],
   "rules": {
     "tailwindcss/no-custom-classname": "off",
-    "tailwindcss/classnames-order": "on",
+    "tailwindcss/classnames-order": 0,
     "import/order": [
       "warn",
       {
@@ -26,7 +26,7 @@
         "pathGroups": [
           {
             "pattern": "@/**",
-            // "group": "internal",
+            "group": "internal",
             "position": "after"
           }
         ],

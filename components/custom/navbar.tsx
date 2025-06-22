@@ -15,11 +15,10 @@ import {
 import { History } from "./history";
 import { SlashIcon } from "./icons";
 import { ThemeToggle } from "./theme-toggle";
-import ChatSessionTools from "./chat-session-tools";
 
-export const Navbar = async () => {
-  let session = await auth();
 
+export const Navbar = async ({ tools }: { tools?: React.ReactNode }) => {
+  const session = await auth();
   return (
     <>
       <div className="bg-background absolute top-0 left-0 w-dvw py-2 px-4 justify-between flex flex-row items-center z-30">
@@ -47,7 +46,7 @@ export const Navbar = async () => {
         </div>
 
         <div className="flex flex-row gap-2 items-center">
-          <ChatSessionTools />
+          {tools}
           {session ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

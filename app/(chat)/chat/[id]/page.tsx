@@ -1,9 +1,12 @@
+import { Node } from "@xyflow/react";
 import { CoreMessage } from "ai";
 import { notFound } from "next/navigation";
 
 import { auth } from "@/app/(auth)/auth";
 import DashboardPanel from "@/components/common/dashboard-panel/dashboard-panel";
 import { Chat as PreviewChat } from "@/components/custom/chat";
+import ChatSessionTools from "@/components/custom/chat-session-tools";
+import { Navbar } from "@/components/custom/navbar";
 import {
   ResizablePanel,
   ResizablePanelGroup,
@@ -15,54 +18,57 @@ import { Chat } from "@/db/schema";
 import { convertToUIMessages } from "@/lib/utils";
 
 import DatabaseConnectionDialog from "./_components/database-connection-dialog/database-connection-dialog";
-import { Node } from "@xyflow/react";
-export default async function Page({ params }: { params: Promise<any> }) {
+
+// Updated interface for Next.js 15+ - params is now a Promise
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default async function Page({ params }: PageProps) {
   const { id } = await params;
-  const chatFromDb = await getChatById({ id });
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    notFound();
+  }
+
+  const chatFromDb = await getChatById({ id, userId: session.user.id });
 
   if (!chatFromDb) {
     notFound();
   }
 
-  // type casting and converting messages to UI messages
   const chat: Chat = {
     ...chatFromDb,
     messages: convertToUIMessages(chatFromDb.messages as Array<CoreMessage>),
   };
 
-  const session = await auth();
-
-  if (!session || !session.user) {
-    return notFound();
-  }
-
-  if (session.user.id !== chat.userId) {
-    return notFound();
-  }
-
   const database = await getChatDatabase(chat.id);
 
   return (
-    <ResizablePanelGroup direction="horizontal">
-      <ResizablePanel>
-        <div className="my-12 size-full">
-          <DashboardPanel
-            chatId={chat.id}
-            dashboardNodes={chat.dashboard as Node[]}
-          />
-        </div>
-      </ResizablePanel>
-
-      <ResizableHandle />
-
-      <ResizablePanel minSize={35} maxSize={60} defaultSize={35}>
-        <PreviewChat
-          id={chat.id}
-          initialMessages={chat.messages}
-          database={database}
-        />
-        <DatabaseConnectionDialog chatId={chat.id} database={database} />
-      </ResizablePanel>
-    </ResizablePanelGroup>
+    <div className="relative w-full h-screen">
+      <Navbar tools={<ChatSessionTools chat={chat as any} />} />
+      <main className="h-full">
+        <ResizablePanelGroup direction="horizontal" className="h-full">
+          <ResizablePanel>
+            <div className="px-4 size-full">
+              <DashboardPanel
+                chatId={chat.id}
+                dashboardNodes={chat.dashboard as Node[]}
+              />
+            </div>
+          </ResizablePanel>
+          <ResizableHandle withHandle />
+          <ResizablePanel minSize={35} maxSize={60} defaultSize={35}>
+            <PreviewChat
+              id={chat.id}
+              initialMessages={chat.messages}
+              database={database}
+            />
+            <DatabaseConnectionDialog chatId={chat.id} database={database} />
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      </main>
+    </div>
   );
 }

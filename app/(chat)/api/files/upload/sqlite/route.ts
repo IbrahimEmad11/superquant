@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
 import { put } from "@vercel/blob";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+
 import { auth } from "@/app/(auth)/auth"; 
 
 const FileSchema = z.object({
@@ -46,7 +47,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: errorMessage }, { status: 400 });
     }
 
-    // Generate unique filename to avoid conflicts
     const timestamp = Date.now();
     const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
     const uniqueFileName = `sqlite-${session.user.id}-${timestamp}-${sanitizedName}`;

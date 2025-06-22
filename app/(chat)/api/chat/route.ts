@@ -167,7 +167,10 @@ export async function DELETE(request: Request) {
   }
 
   try {
-    const chat = await getChatById({ id });
+    if (!session.user.id) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+    const chat = await getChatById({ id, userId: session.user.id });
 
     if (chat.userId !== session.user.id) {
       return new Response("Unauthorized", { status: 401 });

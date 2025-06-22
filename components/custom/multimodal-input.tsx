@@ -13,13 +13,20 @@ import React, {
 } from "react";
 import { toast } from "sonner";
 
-import { ArrowUpIcon, PaperclipIcon, StopIcon } from "./icons";
-import { PreviewAttachment } from "./preview-attachment";
-import useWindowSize from "./use-window-size";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
 
-const suggestedActions = [
+import { ArrowUpIcon, PaperclipIcon, StopIcon } from "./icons";
+import { PreviewAttachment } from "./preview-attachment";
+import useWindowSize from "./use-window-size";
+
+interface SuggestedAction {
+  title: string;
+  label: string;
+  action: string;
+}
+
+const suggestedActions: SuggestedAction[] = [
   // {
   //   title: "What is the distribution",
   //   label: "of genders in the students?",

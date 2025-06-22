@@ -10,7 +10,7 @@ import {
   Node,
 } from "@xyflow/react";
 import { useTheme } from "next-themes";
-import { useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import useDashboardStore from "@/hooks/use-dashboard-store";
@@ -34,8 +34,14 @@ const initialNodes = [
   },
 ];
 
-export default function DashboardPanelFlow() {
+export default function DashboardPanelFlow({ isReadOnly = false }: { isReadOnly?: boolean }) {
+  const [isMounted, setIsMounted] = useState(false);
   const { theme } = useTheme();
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const { nodes, onNodesChange, onConnect } = useDashboardStore(
     useShallow(selector)
   );
@@ -62,24 +68,32 @@ export default function DashboardPanelFlow() {
     }
   }, [nodes.length, fitView]);
 
+  if (!isMounted) {
+    return null; 
+  }
+
   return (
     <ReactFlow
       proOptions={{ hideAttribution: true }}
       colorMode={theme === "dark" ? "dark" : "light"}
       nodes={nodes.length > 0 ? nodes : initialNodes}
-      onNodesChange={onNodesChange}
-      onConnect={onConnect}
       nodeTypes={nodeTypes}
       onLoad={onLoad}
       snapToGrid={true}
       snapGrid={[10, 10]}
       panOnScroll={true}
       selectionOnDrag={true}
-      panOnDrag={[1, 2]} // Enable panning with left and middle mouse buttons
-      zoomOnScroll={false} // Disable zoom on scroll
-      zoomOnPinch={true} // Enable zoom on pinch/wheel with modifier
-      zoomOnDoubleClick={false} // Disable zoom on double click
-      selectNodesOnDrag={true}
+      panOnDrag={[1, 2]}
+      zoomOnScroll={false}
+      zoomOnPinch={true}
+      zoomOnDoubleClick={false}
+      nodesDraggable={!isReadOnly}
+      nodesConnectable={!isReadOnly}
+      selectNodesOnDrag={!isReadOnly}
+      elementsSelectable={!isReadOnly}
+      onNodesChange={isReadOnly ? undefined : onNodesChange}
+      onConnect={isReadOnly ? undefined : onConnect}
+
     >
       <Background
         color="#333333"
@@ -87,7 +101,9 @@ export default function DashboardPanelFlow() {
         gap={15}
         size={1}
       />
-      <Controls />
+      {!isReadOnly && <Controls />}
+  
+      
       <MiniMap style={{ width: 150, height: 100 }} />
     </ReactFlow>
   );

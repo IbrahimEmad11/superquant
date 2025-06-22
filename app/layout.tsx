@@ -10,6 +10,9 @@ export const metadata: Metadata = {
   title: "SuperQuant | AI Data Analyst",
   description:
     "SuperQuant - Replace the need for data analysts in your company with AI",
+  icons: {
+    icon: '/images/superquant-logo.svg'
+  },
 };
 
 export default async function RootLayout({

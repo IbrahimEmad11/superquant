@@ -1,11 +1,11 @@
+import { NodeProps } from "@xyflow/react";
+
 import {
   BarChartCard,
   LineChartCard,
   PieChartCard,
 } from "@/components/generative-ui/charts";
 import { cn } from "@/lib/utils";
-import { NodeProps } from "@xyflow/react";
-
 import { ChartCardData, ChartType } from "@/types/chart-type";
 
 export function DashboardChart({ data, selected = false }: NodeProps) {

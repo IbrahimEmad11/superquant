@@ -3,6 +3,8 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
 
+import * as schema from "./schema";
+
 config({
   path: ".env.local",
 });
@@ -13,7 +15,7 @@ const runMigrate = async () => {
   }
 
   const connection = postgres(process.env.POSTGRES_URL, { max: 1 });
-  const db = drizzle(connection);
+  const db = drizzle(connection,{ schema });
 
   console.log("⏳ Running migrations...");
 
