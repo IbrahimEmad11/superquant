@@ -11,7 +11,7 @@ interface ChatMessagesProps {
   chatId: string;
 }
 
-export function ChatMessages({ initialMessages, chatId }: ChatMessagesProps) {
+export function ChatMessages({ initialMessages, chatId, isReadOnly = false }: ChatMessagesProps) {
   const [messagesContainerRef, messagesEndRef] = useScrollToBottom<HTMLDivElement>();
 
   return (
@@ -34,7 +34,8 @@ export function ChatMessages({ initialMessages, chatId }: ChatMessagesProps) {
           content={message.content}
           attachments={message.experimental_attachments}
           toolInvocations={message.toolInvocations}
-                />
+          isReadOnly={isReadOnly} // Pass the isReadOnly prop
+        />
       ))}
 
       <div

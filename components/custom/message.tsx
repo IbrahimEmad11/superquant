@@ -22,12 +22,14 @@ export const Message = ({
   content,
   toolInvocations,
   attachments,
+  isReadOnly = false,
 }: {
   chatId: string;
   role: string;
   content: string | ReactNode;
   toolInvocations: Array<ToolInvocation> | undefined;
   attachments?: Array<Attachment>;
+  isReadOnly?: boolean;
 }) => {
   return (
     <motion.div
@@ -63,21 +65,23 @@ export const Message = ({
                         title={result.title}
                         caption={result.caption}
                         data={result.data}
+                        noAddButton={isReadOnly}
                       />
                     ) : toolName === "showBarChart" ? (
                       <BarChartCard
                         title={result.title}
                         caption={result.caption}
                         data={result.data}
+                        noAddButton={isReadOnly} 
                       />
                     ) : toolName === "showLineChart" ? (
                       <LineChartCard
                         title={result.title}
                         caption={result.caption}
                         data={result.data}
+                        noAddButton={isReadOnly} 
                       />
                     ) : (
-                      // <div>{JSON.stringify(result, null, 2)}</div>
                       <AnimatedShinyText className="inline-flex items-center justify-center transition ease-out hover:text-neutral-600 hover:duration-300 hover:dark:text-neutral-400">
                         <span>Thinking...</span>
                       </AnimatedShinyText>
@@ -87,21 +91,7 @@ export const Message = ({
               } else {
                 return (
                   <div key={toolCallId} className="skeleton">
-                    {/* {toolName === "getWeather" ? (
-                      <Weather />
-                    ) : toolName === "displayFlightStatus" ? (
-                      <FlightStatus />
-                    ) : toolName === "searchFlights" ? (
-                      <ListFlights chatId={chatId} />
-                    ) : toolName === "selectSeats" ? (
-                      <SelectSeats chatId={chatId} />
-                    ) : toolName === "createReservation" ? (
-                      <CreateReservation />
-                    ) : toolName === "authorizePayment" ? (
-                      <AuthorizePayment />
-                    ) : toolName === "displayBoardingPass" ? (
-                      <DisplayBoardingPass />
-                    ) : null} */}
+                    {/* Skeleton content */}
                   </div>
                 );
               }

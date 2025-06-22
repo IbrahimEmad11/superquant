@@ -22,6 +22,7 @@ interface ChartButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
     caption: string;
     data: {}[];
   };
+  isReadOnly?: boolean; // Add this prop
 }
 
 const selector = (state: AppState) => ({
@@ -33,10 +34,13 @@ const selector = (state: AppState) => ({
   setNodes: state.setNodes,
 });
 
-export default function ChartButton({ chart, className }: ChartButtonProps) {
+export default function ChartButton({ chart, className, isReadOnly = false }: ChartButtonProps) {
   const { nodes, setNodes } = useDashboardStore(useShallow(selector));
 
   const onAddChart = () => {
+    // Don't add chart if in read-only mode
+    if (isReadOnly) return;
+    
     const lastNode = nodes[nodes.length - 1];
     const newPosition = lastNode
       ? { x: lastNode.position.x + 610, y: lastNode.position.y }
@@ -52,6 +56,11 @@ export default function ChartButton({ chart, className }: ChartButtonProps) {
       },
     ]);
   };
+
+  // Don't render the button if in read-only mode
+  if (isReadOnly) {
+    return null;
+  }
 
   return (
     <TooltipProvider>
