@@ -8,6 +8,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+import ChartButton from "@/components/custom/chart-button";
 import {
   Card,
   CardContent,
@@ -20,7 +21,6 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import ChartButton from "@/components/custom/chart-button";
 
 interface LineChartProps {
   title: string;
@@ -40,12 +40,12 @@ export function LineChartCard({
   noAddButton,
 }: LineChartProps) {
   return (
-    <Card className="flex flex-col w-full h-full">
+    <Card className="flex flex-col size-full">
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         <CardDescription>{caption}</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="relative">
         <ChartContainer config={{}}>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart

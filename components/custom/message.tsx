@@ -4,16 +4,17 @@ import { Attachment, ToolInvocation } from "ai";
 import { motion } from "framer-motion";
 import { ReactNode } from "react";
 
-import { BotIcon, UserIcon } from "./icons";
-import { Markdown } from "./markdown";
-import { PreviewAttachment } from "./preview-attachment";
-import { Weather } from "../generative-ui/weather";
-import AnimatedShinyText from "../ui/animated-shiny-text";
 import {
   BarChartCard,
   LineChartCard,
   PieChartCard,
 } from "../generative-ui/charts";
+import { Weather } from "../generative-ui/weather";
+import AnimatedShinyText from "../ui/animated-shiny-text";
+
+import { BotIcon, UserIcon } from "./icons";
+import { Markdown } from "./markdown";
+import { PreviewAttachment } from "./preview-attachment";
 
 export const Message = ({
   chatId,

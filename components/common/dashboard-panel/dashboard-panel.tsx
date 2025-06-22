@@ -18,7 +18,7 @@ export default function DashboardPanelComponent({
   isReadOnly = false, 
 }: DashboardPanelProps) {
   const { setNodes } = useDashboardStore();
-
+  
   useEffect(() => {
     setNodes(dashboardNodes);
   }, [dashboardNodes, setNodes]);

@@ -35,12 +35,12 @@ const initialNodes = [
 ];
 
 export default function DashboardPanelFlow({ isReadOnly = false }: { isReadOnly?: boolean }) {
-  const [isMounted, setIsMounted] = useState(false);
+  // const [isMounted, setIsMounted] = useState(false);
   const { theme } = useTheme();
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  // useEffect(() => {
+  //   setIsMounted(true);
+  // }, []);
 
   const { nodes, onNodesChange, onConnect } = useDashboardStore(
     useShallow(selector)
@@ -68,9 +68,9 @@ export default function DashboardPanelFlow({ isReadOnly = false }: { isReadOnly?
     }
   }, [nodes.length, fitView]);
 
-  if (!isMounted) {
-    return null; 
-  }
+  // if (!isMounted) {
+  //   return null; 
+  // }
 
   return (
     <ReactFlow

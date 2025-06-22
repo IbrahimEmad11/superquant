@@ -1,18 +1,19 @@
 import { PlusIcon } from "lucide-react";
-import { Button } from "../ui/button";
 import { ButtonHTMLAttributes } from "react";
-import useDashboardStore from "@/hooks/use-dashboard-store";
-import { AppState } from "@/types/app-state";
+import { v4 as uuidv4 } from "uuid";
 import { useShallow } from "zustand/react/shallow";
+
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-
-import { v4 as uuidv4 } from "uuid";
+import useDashboardStore from "@/hooks/use-dashboard-store";
+import { AppState } from "@/types/app-state";
 import { ChartType } from "@/types/chart-type";
+
+import { Button } from "../ui/button";
 
 interface ChartButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   chart: {

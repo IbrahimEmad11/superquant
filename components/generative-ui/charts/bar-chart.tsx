@@ -2,6 +2,7 @@
 
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
 
+import ChartButton from "@/components/custom/chart-button";
 import {
   Card,
   CardContent,
@@ -14,7 +15,6 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import ChartButton from "@/components/custom/chart-button";
 
 interface BarChartProps {
   title: string;
@@ -34,12 +34,12 @@ export function BarChartCard({
   noAddButton,
 }: BarChartProps) {
   return (
-    <Card className="flex flex-col w-full h-full">
+    <Card className="flex flex-col size-full">
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         <CardDescription>{caption}</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="relative">
         <ChartContainer config={{}}>
           <BarChart accessibilityLayer data={data}>
             <CartesianGrid vertical={false} />
