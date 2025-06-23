@@ -20,12 +20,25 @@ export async function generateSqlWriteExecuteTool(database: AppDatabaseSchema) {
         if (database.type === 'sqlite') {
           console.log('Processing SQLite query for question:', question);
           
-          // 1. Get database metadata
-          const metadata = await InMemorySQLiteHandler.getDatabaseMetadata(database.connectionString);
-          console.log('Database metadata:', JSON.stringify(metadata, null, 2));
+          // 1. Get database metadata with better error handling
+          let metadata;
+          try {
+            metadata = await InMemorySQLiteHandler.getDatabaseMetadata(database.connectionString);
+            console.log('Database metadata retrieved:', metadata.tables.length, 'tables found');
+          } catch (metadataError) {
+            console.error('Failed to get database metadata:', metadataError);
+            return JSON.stringify({
+              error: "Failed to retrieve database schema",
+              details: metadataError instanceof Error ? metadataError.message : 'Unknown error',
+              suggestion: "Please verify the database file is accessible and not corrupted."
+            }, null, 2);
+          }
           
           if (metadata.tables.length === 0) {
-            return "No tables found in the database.";
+            return JSON.stringify({
+              message: "No tables found in the database",
+              suggestion: "The database appears to be empty or all tables are system tables."
+            }, null, 2);
           }
 
           // 2. Create a comprehensive database context for the LLM
@@ -38,23 +51,33 @@ export async function generateSqlWriteExecuteTool(database: AppDatabaseSchema) {
               databaseContext += `  - ${col.name}: ${col.type}${col.primaryKey ? ' (PRIMARY KEY)' : ''}${col.nullable ? ' (NULLABLE)' : ' (NOT NULL)'}\n`;
             }
             
-            // Add sample data for better context
+            // Add sample data for better context - with error handling
             try {
               const sampleData = await InMemorySQLiteHandler.getSampleData(database.connectionString, table.name, 2);
               if (sampleData.length > 0) {
                 databaseContext += `Sample data: ${JSON.stringify(sampleData[0])}\n`;
               }
-            } catch (error) {
-              console.warn(`Could not get sample data for ${table.name}:`, error);
+            } catch (sampleError) {
+              console.warn(`Could not get sample data for ${table.name}:`, sampleError);
+              // Continue without sample data
             }
             databaseContext += '\n';
           }
 
-          // 3. Use OpenAI directly to generate SQL query with better context
-          const llm = new ChatOpenAI({ 
-            model: 'gpt-3.5-turbo',
-            temperature: 0 
-          });
+          // 3. Use OpenAI to generate SQL query with better context
+          let llm;
+          try {
+            llm = new ChatOpenAI({ 
+              model: 'gpt-3.5-turbo',
+              temperature: 0 
+            });
+          } catch (llmError) {
+            return JSON.stringify({
+              error: "Failed to initialize AI model",
+              details: "Could not connect to OpenAI service",
+              suggestion: "Please check your OpenAI API configuration."
+            }, null, 2);
+          }
           
           const sqlPrompt = `Given the following SQLite database schema and a user question, generate a valid SQLite query to answer the question.
 
@@ -65,33 +88,60 @@ User Question: ${question}
 Requirements:
 - Generate ONLY the SQL query, no explanations
 - Use double quotes for table and column names if they contain spaces or special characters
-- Use SQLite syntax
+- Use SQLite syntax and functions (like strftime for date formatting)
 - Make sure the query is valid and executable
-- If the question cannot be answered with the available data, return a query that returns an appropriate message
+- Use appropriate JOINs if multiple tables are needed
+- If the question cannot be answered with the available data, return: SELECT 'Data not available for this question' as message
 
 SQL Query:`;
 
-          const response = await llm.invoke(sqlPrompt);
+          let response;
+          try {
+            response = await llm.invoke(sqlPrompt);
+          } catch (aiError) {
+            return JSON.stringify({
+              error: "Failed to generate SQL query",
+              details: aiError instanceof Error ? aiError.message : 'AI service error',
+              suggestion: "Please try rephrasing your question or check the AI service status."
+            }, null, 2);
+          }
+
           let sqlQuery = response.content.toString().trim();
           
           // Clean up the SQL query
           sqlQuery = sqlQuery.replace(/^```sql\s*\n?/, '').replace(/\n?```$/, '').trim();
           sqlQuery = sqlQuery.replace(/^SQL Query:\s*/, '').trim();
+          sqlQuery = sqlQuery.replace(/^Query:\s*/, '').trim();
           
           console.log('Generated SQL query:', sqlQuery);
           
-          // 4. Execute the query using our handler
-          const results = await InMemorySQLiteHandler.executeQuery(database.connectionString, sqlQuery);
-          
-          console.log('Query results:', results);
+          // 4. Execute the query using our handler with better error handling
+          let results;
+          try {
+            results = await InMemorySQLiteHandler.executeQuery(database.connectionString, sqlQuery);
+            console.log('Query executed successfully, returned', results.length, 'rows');
+          } catch (queryError) {
+            console.error('Query execution failed:', queryError);
+            
+            // Try to provide helpful error messages
+            const errorMessage = queryError instanceof Error ? queryError.message : 'Unknown query error';
+            
+            return JSON.stringify({
+              error: "Query execution failed",
+              query: sqlQuery,
+              details: errorMessage,
+              suggestion: "The generated query may have syntax errors or reference non-existent columns. Please try rephrasing your question."
+            }, null, 2);
+          }
           
           return JSON.stringify({
+            success: true,
             query: sqlQuery,
             results: results,
-            rowCount: results.length
+            rowCount: results.length,
+            summary: `Successfully executed query and returned ${results.length} rows`
           }, null, 2);
         }
-
         // --- PostgreSQL & MySQL LOGIC 
         const datasource = new DataSource({
           type: database.type as any,

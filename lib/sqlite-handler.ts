@@ -6,17 +6,69 @@ import Database from 'better-sqlite3';
  * Works by downloading SQLite files from Vercel Blob into memory buffers
  */
 export class InMemorySQLiteHandler {
+  private static fileCache = new Map<string, Buffer>();
+  private static cacheExpiry = new Map<string, number>();
+  private static readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
   public static async downloadBlobToBuffer(blobUrl: string): Promise<Buffer> {
     try {
-      const response = await fetch(blobUrl);
-      if (!response.ok) {   
-        throw new Error(`Failed to download SQLite file: ${response.statusText}`);
+      // Check cache first
+      const now = Date.now();
+      if (this.fileCache.has(blobUrl)) {
+        const expiry = this.cacheExpiry.get(blobUrl) || 0;
+        if (now < expiry) {
+          console.log('Using cached SQLite file');
+          return this.fileCache.get(blobUrl)!;
+        } else {
+          // Clear expired cache
+          this.fileCache.delete(blobUrl);
+          this.cacheExpiry.delete(blobUrl);
+        }
+      }
+
+      console.log('Downloading SQLite file from:', blobUrl);
+      const response = await fetch(blobUrl, {
+        headers: {
+          'User-Agent': 'SQLite-Handler/1.0',
+        },
+        // Add timeout
+        signal: AbortSignal.timeout(30000) // 30 second timeout
+      });
+
+      if (!response.ok) {
+        console.error('HTTP Status:', response.status, response.statusText);
+        console.error('Response headers:', Object.fromEntries(response.headers.entries()));
+        
+        // More specific error messages
+        switch (response.status) {
+          case 403:
+            throw new Error('Access denied to SQLite file. The file may have expired or permissions are insufficient.');
+          case 404:
+            throw new Error('SQLite file not found. The file may have been deleted or moved.');
+          case 500:
+            throw new Error('Server error when accessing SQLite file. Please try again later.');
+          default:
+            throw new Error(`Failed to download SQLite file: ${response.status} ${response.statusText}`);
+        }
       }
       
       const arrayBuffer = await response.arrayBuffer();
-      return Buffer.from(arrayBuffer);
+      const buffer = Buffer.from(arrayBuffer);
+      
+      // Cache the file
+      this.fileCache.set(blobUrl, buffer);
+      this.cacheExpiry.set(blobUrl, now + this.CACHE_DURATION);
+      
+      console.log('SQLite file downloaded successfully, size:', buffer.length, 'bytes');
+      return buffer;
     } catch (error) {
       console.error('Error downloading SQLite file:', error);
+      
+      if (error instanceof Error) {
+        // Re-throw with more context
+        throw new Error(`Failed to download SQLite file: ${error.message}`);
+      }
+      
       throw new Error('Failed to download SQLite file from storage');
     }
   }
@@ -71,16 +123,30 @@ export class InMemorySQLiteHandler {
       console.log('Executing query:', cleanQuery);
       console.log('With params:', params);
       
+      // Basic SQL injection protection
+      if (cleanQuery.toLowerCase().includes('drop ') || 
+          cleanQuery.toLowerCase().includes('delete ') || 
+          cleanQuery.toLowerCase().includes('update ') ||
+          cleanQuery.toLowerCase().includes('insert ')) {
+        throw new Error('Modifying queries are not allowed');
+      }
+      
       // Execute query
       const stmt = db.prepare(cleanQuery);
       const results = stmt.all(...params) as T[];
       
+      console.log('Query executed successfully, returned', results.length, 'rows');
       return results;
     } catch (error) {
       console.error('Error executing SQLite query:', error);
       console.error('Query was:', query);
       console.error('Params were:', params);
-      throw new Error(`Failed to execute query: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      if (error instanceof Error) {
+        throw new Error(`Failed to execute query: ${error.message}`);
+      }
+      
+      throw new Error('Failed to execute query: Unknown error');
     } finally {
       if (db) {
         try {
@@ -101,56 +167,97 @@ export class InMemorySQLiteHandler {
       db = new Database(buffer, { readonly: true });
 
       // Execute all necessary queries on the single, open database connection
-      const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all() as { name: string }[];
+      const tables = db.prepare(`
+        SELECT name FROM sqlite_master 
+        WHERE type='table' 
+        AND name NOT LIKE 'sqlite_%' 
+        ORDER BY name
+      `).all() as { name: string }[];
+      
       const tableNames = tables.map(t => t.name);
+      console.log('Found tables:', tableNames);
 
-      const metadata = tableNames.map(tableName => {
-        // Use quoted identifiers for table names to handle special characters/spaces
-        const quotedTableName = `"${tableName}"`;
-        const schema = db!.prepare(`PRAGMA table_info(${quotedTableName})`).all();
-        const countResult = db!.prepare(`SELECT COUNT(*) as count FROM ${quotedTableName}`).get() as { count: number };
-        
-        return {
-          name: tableName,
-          columns: schema.map((col: any) => ({
-            name: col.name,
-            type: col.type,
-            nullable: !col.notnull,
-            primaryKey: col.pk === 1
-          })),
-          rowCount: countResult?.count || 0
-        };
-      });
+      const metadata = [];
+      
+      for (const tableName of tableNames) {
+        try {
+          // Use quoted identifiers for table names to handle special characters/spaces
+          const quotedTableName = `"${tableName}"`;
+          const schema = db.prepare(`PRAGMA table_info(${quotedTableName})`).all();
+          
+          let rowCount = 0;
+          try {
+            const countResult = db.prepare(`SELECT COUNT(*) as count FROM ${quotedTableName}`).get() as { count: number };
+            rowCount = countResult?.count || 0;
+          } catch (countError) {
+            console.warn(`Could not get row count for table ${tableName}:`, countError);
+          }
+          
+          metadata.push({
+            name: tableName,
+            columns: schema.map((col: any) => ({
+              name: col.name,
+              type: col.type,
+              nullable: !col.notnull,
+              primaryKey: col.pk === 1
+            })),
+            rowCount: rowCount
+          });
+        } catch (tableError) {
+          console.warn(`Error processing table ${tableName}:`, tableError);
+          // Continue with other tables
+        }
+      }
 
       return {
         tables: metadata,
-        totalTables: tableNames.length
+        totalTables: metadata.length
       };
     } catch (error) {
       console.error('Error getting SQLite database metadata:', error);
-      throw new Error('Failed to retrieve database metadata');
+      throw new Error(`Failed to retrieve database metadata: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
-      if (db) db.close();
+      if (db) {
+        try {
+          db.close();
+        } catch (closeError) {
+          console.warn('Error closing SQLite database:', closeError);
+        }
+      }
     }
   }
 
   public static async getTableNames(blobUrl: string): Promise<string[]> {
-    const tables = await this.executeQuery<{ name: string }>(
-      blobUrl,
-      "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
-    );
-    return tables.map(t => t.name);
+    try {
+      const tables = await this.executeQuery<{ name: string }>(
+        blobUrl,
+        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
+      );
+      return tables.map(t => t.name);
+    } catch (error) {
+      console.error('Error getting table names:', error);
+      return [];
+    }
   }
 
   static async getTableSchema(blobUrl: string, tableName: string): Promise<any[]> {
-    // Use quoted identifier for table name
-    return this.executeQuery(blobUrl, `PRAGMA table_info("${tableName}")`);
+    try {
+      // Use quoted identifier for table name
+      return await this.executeQuery(blobUrl, `PRAGMA table_info("${tableName}")`);
+    } catch (error) {
+      console.error(`Error getting schema for table ${tableName}:`, error);
+      return [];
+    }
   }
 
   // New method to get table schema in a format that LangChain can understand
   static async getTableSchemaForLangChain(blobUrl: string, tableName: string): Promise<string> {
     try {
       const schema = await this.getTableSchema(blobUrl, tableName);
+      if (schema.length === 0) {
+        return `CREATE TABLE "${tableName}" (id INTEGER)`;
+      }
+      
       const columns = schema.map((col: any) => `${col.name} ${col.type}`).join(', ');
       return `CREATE TABLE "${tableName}" (${columns})`;
     } catch (error) {
@@ -167,5 +274,12 @@ export class InMemorySQLiteHandler {
       console.error(`Error getting sample data for table ${tableName}:`, error);
       return [];
     }
+  }
+
+  // Method to clear cache (useful for testing or when blob URLs change)
+  static clearCache(): void {
+    this.fileCache.clear();
+    this.cacheExpiry.clear();
+    console.log('SQLite file cache cleared');
   }
 }
