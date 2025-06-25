@@ -1,7 +1,9 @@
 "use client";
 
+import { upload } from '@vercel/blob/client';
 import { X, Upload, Loader } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -40,6 +42,7 @@ export default function DatabaseConnectionDialog({
   chatId,
   database,
 }: DatabaseConnectionDialogProps) {
+  const { data: session } = useSession();
   const router = useRouter();
   const [connectionInitialized, setConnectionInitialized] = useState(false);
 
@@ -65,46 +68,74 @@ export default function DatabaseConnectionDialog({
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     setIsUploading(true);
-    const file = event.target.files?.[0];
+    const file = event.target.files?.[0];   
     if (!file) {
       toast.error("No file selected");
       setIsUploading(false);
       return;
+    }   
+    if (file.size > 100 * 1024 * 1024) {
+      toast.error("File size should be less than 100MB");
+      setIsUploading(false);
+      return;
     }
+
+    if (!file.name.match(/\.(sqlite|db|sqlite3|db3)$/i)) {
+      toast.error("Invalid file type. Must be a SQLite database file (.sqlite, .db, .sqlite3, .db3).");
+      setIsUploading(false);
+      return;
+    }
+
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const uploadResponse = await fetch("/api/files/upload/sqlite", {
-        method: "POST",
-        body: formData,
+      console.log("Original file type:", file.type);
+      console.log("File name:", file.name);
+      console.log("File size:", file.size);
+      
+      const sqliteFile = new File([file], file.name, {
+        type: 'application/octet-stream',
       });
-      let uploadData;
-      try {
-        uploadData = await uploadResponse.json();
-      } catch (parseError) {
-        console.error("Failed to parse response:", parseError);
-        toast.error("Server error - please try again later");
-        setIsUploading(false);
-        return;
-      }
+      
+      console.log("Modified file type:", sqliteFile.type);
+      console.log("About to call upload with URL: /api/files/upload/sqlite");
+      
+      // Upload the file using Vercel Blob client
+      const newBlob = await upload(sqliteFile.name, sqliteFile, {
+        access: 'public',
+        handleUploadUrl: '/api/files/upload/sqlite',
+        clientPayload: JSON.stringify({
+          originalFileName: file.name,
+          fileSize: file.size,
+          uploadedAt: new Date().toISOString(),
+        }),
+      });
 
-      if (!uploadResponse.ok) {
-        const errorMessage = uploadData.error || `Upload failed (${uploadResponse.status})`;
-        toast.error(errorMessage);
-        setIsUploading(false);
-        return;
-      }
-
-      setConnectionString(uploadData.path);
+      console.log('Successfully uploaded to Vercel Blob:', newBlob.url);
+      setConnectionString(newBlob.url);
       setUploadedFileName(file.name);
       toast.success("File uploaded successfully!");
-      
+        
     } catch (error) {
       console.error("Upload error:", error);
-      if (error instanceof TypeError && error.message.includes('fetch')) {
-        toast.error("Network error - please check your connection and try again");
-      } else if (error instanceof Error) {
-        toast.error(`Upload failed: ${error.message}`);
+      
+      if (error instanceof Error) {
+        if (error.message.includes('413') || 
+            error.message.includes('too large') || 
+            error.message.includes('FUNCTION_PAYLOAD_TOO_LARGE')) {
+          toast.error("File is too large for upload. Please use a file smaller than 15MB.");
+        } else if (error.message.includes('network') || 
+                   error.message.includes('fetch')) {
+          toast.error("Network error - please check your connection and try again");
+        } else if (error.message.includes('Unauthorized') || 
+                   error.message.includes('session')) {
+          toast.error("Please log in to upload files");
+        } else if (error.message.includes('Content type mismatch') || 
+                   error.message.includes('contentType')) {
+          toast.error("File type not supported. Please ensure you're uploading a valid SQLite database file.");
+        } else if (error.message.includes('Failed to retrieve the client token')) {
+          toast.error("Authentication failed. Please refresh the page and try again.");
+        } else {
+          toast.error(`Upload failed: ${error.message}`);
+        }
       } else {
         toast.error("Unexpected error occurred during upload");
       }
@@ -112,7 +143,6 @@ export default function DatabaseConnectionDialog({
       setIsUploading(false);
     }
   };
-  
   const handleCancelUpload = () => {
     setUploadedFileName(null); 
     setConnectionString("");
@@ -225,13 +255,17 @@ return (
                 id="sqlite-upload"
                 ref={fileInputRef}
                 className="hidden"
+                disabled={isUploading}
               />
 
-              <Label
-                htmlFor="sqlite-upload"
-                className="flex items-center justify-between w-full h-10 cursor-pointer rounded-md border border-input bg-primary/10 text-primary px-4 py-2 text-sm font-medium 
-                          hover:bg-primary hover:text-white transition-all duration-300 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              >
+                <Label
+                  htmlFor="sqlite-upload"
+                  className={cn(
+                    "flex items-center justify-between w-full h-10 cursor-pointer rounded-md border border-input bg-primary/10 text-primary px-4 py-2 text-sm font-medium transition-all duration-300 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                    !isUploading && "hover:bg-primary hover:text-white",
+                    isUploading && "cursor-not-allowed opacity-50"
+                  )}
+                >
                 <div className="flex items-center gap-2">
                   {isUploading ? (
                     <>
@@ -250,12 +284,15 @@ return (
                     </>
                   )}
                 </div>
-                {uploadedFileName && (
-                  <button
-                    type="button"
-                    onClick={handleCancelUpload}
-                    className="text-white hover:text-gray-400 transition-all"
-                  >
+                  {uploadedFileName && !isUploading && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleCancelUpload();
+                      }}
+                      className="text-white hover:text-gray-400 transition-all"
+                    >
                     <X className="size-4" /> 
                   </button>
                 )}

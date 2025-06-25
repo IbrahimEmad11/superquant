@@ -1,96 +1,87 @@
-import { put } from "@vercel/blob";
-import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
+import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
+import { NextResponse } from 'next/server';
 
-import { auth } from "@/app/(auth)/auth"; 
+import { auth } from '@/app/(auth)/auth';
 
-const FileSchema = z.object({
-  file: z
-    .instanceof(File)
-    .refine((file) => file.size <= 10 * 1024 * 1024, {
-      message: "File size should be less than 10MB",
-    })
-    .refine(
-      (file) =>
-        ["application/x-sqlite3", "application/octet-stream"].includes(
-          file.type
-        ) || 
-        file.name.endsWith(".sqlite") || 
-        file.name.endsWith(".db") ||
-        file.name.endsWith(".sqlite3") ||
-        file.name.endsWith(".db3"),
-      {
-        message: "Invalid file type. Must be a SQLite database file (.sqlite, .db, .sqlite3, .db3).",
-      }
-    ),
-});
-
-export async function POST(req: NextRequest) {
-
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export async function POST(request: Request): Promise<NextResponse> {
+  console.log("Upload API route called");
+  
+  let body: HandleUploadBody;
+  
   try {
-    const formData = await req.formData();
-    const file = formData.get("file") as File | null;
-
-    if (!file) {
-      return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
-    }
-
-    const validation = FileSchema.safeParse({ file });
-    if (!validation.success) {
-      const errorMessage = validation.error.errors
-        .map((error) => error.message)
-        .join(", ");
-      return NextResponse.json({ error: errorMessage }, { status: 400 });
-    }
-
-    const timestamp = Date.now();
-    const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const uniqueFileName = `sqlite-${session.user.id}-${timestamp}-${sanitizedName}`;
-
-    // Upload to Vercel Blob with public access
-    try {
-      const blob = await put(uniqueFileName, file, {
-        access: "public",
-        addRandomSuffix: false,
-      });
-
-      console.log("Successfully uploaded SQLite file to Vercel Blob:", blob.url);
-
-      return NextResponse.json({
-        success: true,
-        path: blob.url,
-        filename: file.name,
-        size: file.size
-      });
-    } catch (blobError) {
-      console.error("Vercel Blob upload error:", blobError);
-      
-      if (blobError instanceof Error) {
-        return NextResponse.json({ 
-          error: `Upload service error: ${blobError.message}` 
-        }, { status: 500 });
-      } else {
-        return NextResponse.json({ 
-          error: "Upload service is currently unavailable" 
-        }, { status: 500 });
-      }
-    }
+    body = (await request.json()) as HandleUploadBody;
+    console.log("Request body:", body);
   } catch (error) {
-    console.error("Error uploading SQLite file:", error);
-    
-    // Return more specific error information in development
-    if (process.env.NODE_ENV === 'development') {
-      return NextResponse.json({ 
-        error: `Development error: ${error instanceof Error ? error.message : 'Unknown error'}` 
-      }, { status: 500 });
-    }
-    
-    return NextResponse.json({ 
-      error: "Failed to upload file. Please try again." 
-    }, { status: 500 });
+    console.error("Error parsing request body:", error);
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+
+  try {
+    const jsonResponse = await handleUpload({
+      body,
+      request,
+      onBeforeGenerateToken: async (pathname, clientPayload) => {
+        try {
+          console.log("onBeforeGenerateToken called");
+          console.log("Requested upload path:", pathname);
+          console.log("Client payload:", clientPayload);
+          
+          const session = await auth();
+          console.log("Session:", session?.user?.id ? "Valid session" : "No session");
+          if (!session?.user?.id) {
+            console.log("Authentication failed");
+            throw new Error('Unauthorized');
+          }
+
+          // Validate file extension from pathname
+          if (!pathname.match(/\.(sqlite|db|sqlite3|db3)$/i)) {
+            throw new Error('Invalid file type. Must be a SQLite database file.');
+          }
+
+          console.log("Returning token configuration");
+          return {
+            allowedContentTypes: [
+              "application/octet-stream",
+              "application/x-sqlite3",
+              "application/vnd.sqlite3",
+              "application/database",
+              "*/*" // Fallback for any content type
+            ],
+            tokenPayload: JSON.stringify({
+              userId: session.user.id,
+            }),
+          };
+        } catch (error) {
+          console.error("Error in onBeforeGenerateToken:", error);
+          throw error;
+        }
+      },
+      onUploadCompleted: async ({
+        blob,
+        tokenPayload,
+      }: {
+        blob: any;
+        tokenPayload?: string | null;
+      }) => {
+        console.log("Blob upload completed", blob, tokenPayload);
+
+        try {
+          if (!tokenPayload) throw new Error("Missing token payload");
+          const { userId } = JSON.parse(tokenPayload);
+          console.log("Upload completed for user:", userId, "Blob URL:", blob.url);
+        } catch (error) {
+          console.error("Error in onUploadCompleted:", error);
+          throw new Error("Could not update user");
+        }
+      },
+    });
+
+    return NextResponse.json(jsonResponse);
+  } catch (error) {
+    console.error("Upload API route error:", error);
+    return NextResponse.json(
+      { error: (error as Error).message },
+      { status: 500 },
+    );
   }
 }

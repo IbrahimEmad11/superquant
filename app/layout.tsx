@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { SessionProvider } from "next-auth/react";
 import { Toaster } from "sonner";
 
 import { Navbar } from "@/components/custom/navbar";
@@ -23,6 +24,7 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
+        <SessionProvider> 
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -33,6 +35,7 @@ export default async function RootLayout({
           <Navbar />
           {children}
         </ThemeProvider>
+        </SessionProvider>
       </body>
     </html>
   );
