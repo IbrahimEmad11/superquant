@@ -7,8 +7,8 @@ import { auth } from "@/app/(auth)/auth";
 const FileSchema = z.object({
   file: z
     .instanceof(File)
-    .refine((file) => file.size <= 5 * 1024 * 1024, {
-      message: "File size should be less than 5MB",
+    .refine((file) => file.size <= 10 * 1024 * 1024, {
+      message: "File size should be less than 10MB",
     })
     .refine(
       (file) =>
@@ -52,23 +52,43 @@ export async function POST(req: NextRequest) {
     const uniqueFileName = `sqlite-${session.user.id}-${timestamp}-${sanitizedName}`;
 
     // Upload to Vercel Blob with public access
-    const blob = await put(uniqueFileName, file, { 
-      access: "public",
-      addRandomSuffix: false,
-    });
+    try {
+      const blob = await put(uniqueFileName, file, {
+        access: "public",
+        addRandomSuffix: false,
+      });
 
-    console.log("Successfully uploaded SQLite file to Vercel Blob:", blob.url);
+      console.log("Successfully uploaded SQLite file to Vercel Blob:", blob.url);
 
-    // Return the blob URL as the connection string
-    return NextResponse.json({ 
-      success: true, 
-      path: blob.url,
-      filename: file.name,
-      size: file.size
-    });
-
+      return NextResponse.json({
+        success: true,
+        path: blob.url,
+        filename: file.name,
+        size: file.size
+      });
+    } catch (blobError) {
+      console.error("Vercel Blob upload error:", blobError);
+      
+      if (blobError instanceof Error) {
+        return NextResponse.json({ 
+          error: `Upload service error: ${blobError.message}` 
+        }, { status: 500 });
+      } else {
+        return NextResponse.json({ 
+          error: "Upload service is currently unavailable" 
+        }, { status: 500 });
+      }
+    }
   } catch (error) {
     console.error("Error uploading SQLite file:", error);
+    
+    // Return more specific error information in development
+    if (process.env.NODE_ENV === 'development') {
+      return NextResponse.json({ 
+        error: `Development error: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      }, { status: 500 });
+    }
+    
     return NextResponse.json({ 
       error: "Failed to upload file. Please try again." 
     }, { status: 500 });

@@ -66,37 +66,48 @@ export default function DatabaseConnectionDialog({
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     setIsUploading(true);
     const file = event.target.files?.[0];
-  
     if (!file) {
       toast.error("No file selected");
       setIsUploading(false);
       return;
     }
-    
     try {
       const formData = new FormData();
       formData.append("file", file);
-  
       const uploadResponse = await fetch("/api/files/upload/sqlite", {
         method: "POST",
         body: formData,
       });
-  
-      const uploadData = await uploadResponse.json();
-  
+      let uploadData;
+      try {
+        uploadData = await uploadResponse.json();
+      } catch (parseError) {
+        console.error("Failed to parse response:", parseError);
+        toast.error("Server error - please try again later");
+        setIsUploading(false);
+        return;
+      }
+
       if (!uploadResponse.ok) {
-        toast.error(uploadData.error || "Upload failed.");
+        const errorMessage = uploadData.error || `Upload failed (${uploadResponse.status})`;
+        toast.error(errorMessage);
         setIsUploading(false);
         return;
       }
 
       setConnectionString(uploadData.path);
       setUploadedFileName(file.name);
-
       toast.success("File uploaded successfully!");
+      
     } catch (error) {
       console.error("Upload error:", error);
-      toast.error("Error uploading file.");
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        toast.error("Network error - please check your connection and try again");
+      } else if (error instanceof Error) {
+        toast.error(`Upload failed: ${error.message}`);
+      } else {
+        toast.error("Unexpected error occurred during upload");
+      }
     } finally {
       setIsUploading(false);
     }
