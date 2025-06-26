@@ -4,7 +4,7 @@ import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { DataSource } from "typeorm";
 
-import { auth } from "@/app/(auth)/auth";
+import { auth, signOut } from "@/app/(auth)/auth";
 import { db , createChat } from "@/db/queries";
 import { createDatabase } from "@/db/repositories/databases";
 import { chat } from "@/db/schema";
@@ -144,4 +144,10 @@ export async function updateChatSharing(chatId: string, mode: ShareMode) {
     console.error("Failed to update chat sharing:", error);
     return { error: "An unexpected error occurred." };
   }
+}
+
+export async function signOutAction() {
+  await signOut({
+    redirectTo: "/",
+  });
 }

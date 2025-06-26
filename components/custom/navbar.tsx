@@ -1,7 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { auth, signOut } from "@/app/(auth)/auth";
+import { auth } from "@/app/(auth)/auth";
+import { signOutAction } from "@/app/(chat)/_lib/actions";
 
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
@@ -62,16 +63,7 @@ export const Navbar = async ({ tools }: { tools?: React.ReactNode }) => {
                   <ThemeToggle />
                 </DropdownMenuItem>
                 <DropdownMenuItem className="p-1 z-50">
-                  <form
-                    className="w-full"
-                    action={async () => {
-                      "use server";
-
-                      await signOut({
-                        redirectTo: "/",
-                      });
-                    }}
-                  >
+                  <form className="w-full" action={signOutAction}>
                     <button
                       type="submit"
                       className="w-full text-left px-1 py-0.5 text-red-500"
