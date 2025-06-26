@@ -65,7 +65,7 @@ export default async function Page({ params }: PageProps) {
               initialMessages={chat.messages}
               database={database}
             />
-            {/* <DatabaseConnectionDialog chatId={chat.id} database={database} /> */}
+            <DatabaseConnectionDialog chatId={chat.id} database={database} />
           </ResizablePanel>
         </ResizablePanelGroup>
       </main>
