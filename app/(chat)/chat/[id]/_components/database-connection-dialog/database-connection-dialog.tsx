@@ -13,6 +13,7 @@ import {
   testDatabaseConnection,
   createChatAction
 } from "@/app/(chat)/_lib/actions";
+import { TextareaWithCounter } from "@/components/custom/text-area-with-counter"; 
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,7 +26,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { Textarea } from "@/components/ui/textarea";
 import { Database } from "@/db/schema";
 import { useDatabaseConnectionDialog } from "@/hooks/use-database-connection-dialog";
 import { cn } from "@/lib/utils";
@@ -127,7 +127,6 @@ export default function DatabaseConnectionDialog({
       console.log("Modified file type:", sqliteFile.type);
       console.log("About to call upload with URL: /api/files/upload/sqlite");
       
-      // Upload the file using Vercel Blob client
       const newBlob = await upload(sqliteFile.name, sqliteFile, {
         access: 'public',
         handleUploadUrl: '/api/files/upload/sqlite',
@@ -217,7 +216,6 @@ export default function DatabaseConnectionDialog({
 
         setCurrentStep('finalizing');
         
-        // Brief pause for visual feedback
         await new Promise(resolve => setTimeout(resolve, 500));
         
         setCurrentStep('success');
@@ -253,7 +251,6 @@ export default function DatabaseConnectionDialog({
       console.error("Connection error:", error);
       toast.error("An unexpected error occurred");
     } finally {
-      // Don't reset processing state here - let it stay until redirect
       if (currentStep !== 'success') {
         setIsProcessing(false);
         setCurrentStep('idle');
@@ -281,7 +278,6 @@ export default function DatabaseConnectionDialog({
 
   const handleCancel = () => {
     if (isProcessing && currentStep !== 'success') {
-      // Show confirmation for canceling during process
       if (confirm("Are you sure you want to cancel? The connection process is in progress.")) {
         if (!chatId) {
           onCancel?.();
@@ -366,12 +362,13 @@ export default function DatabaseConnectionDialog({
             </div>
             <div className="flex flex-col gap-4">
               <Label>Database Description</Label>
-              <Textarea
-                placeholder="Enter your database description"
+              <TextareaWithCounter
+                placeholder="Describe your database schema, tables, relationships, and any important details..."
                 value={databaseDescription}
                 onChange={(e) => setDatabaseDescription(e.target.value)}
-                maxLength={200}
+                maxLength={2000}
                 disabled={isProcessing}
+                showCounter={true}
               />
             </div>
             <div className="flex flex-col gap-4">

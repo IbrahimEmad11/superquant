@@ -48,9 +48,9 @@ export type Reservation = InferSelectModel<typeof reservation>;
 export const database = pgTable("Database", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   name: varchar("name", { length: 64 }).notNull(),
-  description: varchar("description", { length: 256 }).notNull(),
+  description: varchar("description", { length: 2000 }).notNull(),
   type: varchar("type", { length: 64 }).notNull(),
-  connectionString: varchar("connectionString", { length: 256 }).notNull(),
+  connectionString: varchar("connectionString", { length: 512 }).notNull(),
   chatId: uuid("chatId")
     .notNull()
     .references(() => chat.id, { onDelete: "cascade" }),
