@@ -1,1 +1,0 @@
-ALTER TABLE "Chat" ADD COLUMN "dashboard" json DEFAULT '[]' NOT NULL;

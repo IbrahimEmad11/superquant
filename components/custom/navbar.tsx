@@ -1,7 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { auth, signOut } from "@/app/(auth)/auth";
+import { auth } from "@/app/(auth)/auth";
+import { signOutAction } from "@/app/(chat)/_lib/actions";
 
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
@@ -15,11 +16,10 @@ import {
 import { History } from "./history";
 import { SlashIcon } from "./icons";
 import { ThemeToggle } from "./theme-toggle";
-import ChatSessionTools from "./chat-session-tools";
 
-export const Navbar = async () => {
-  let session = await auth();
 
+export const Navbar = async ({ tools }: { tools?: React.ReactNode }) => {
+  const session = await auth();
   return (
     <>
       <div className="bg-background absolute top-0 left-0 w-dvw py-2 px-4 justify-between flex flex-row items-center z-30">
@@ -47,7 +47,7 @@ export const Navbar = async () => {
         </div>
 
         <div className="flex flex-row gap-2 items-center">
-          <ChatSessionTools />
+          {tools}
           {session ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -63,16 +63,7 @@ export const Navbar = async () => {
                   <ThemeToggle />
                 </DropdownMenuItem>
                 <DropdownMenuItem className="p-1 z-50">
-                  <form
-                    className="w-full"
-                    action={async () => {
-                      "use server";
-
-                      await signOut({
-                        redirectTo: "/",
-                      });
-                    }}
-                  >
+                  <form className="w-full" action={signOutAction}>
                     <button
                       type="submit"
                       className="w-full text-left px-1 py-0.5 text-red-500"

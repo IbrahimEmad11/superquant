@@ -18,9 +18,9 @@ export default function Page() {
 
   const handleCreateChat = async () => {
     setIsCreatingChat(true);
-    const id = generateUUID();
-    await createChatAction(id);
-    router.push(`/chat/${id}`);
+    // const id = generateUUID();
+    // await createChatAction(id);
+    router.push(`/start-chat`);
     setIsCreatingChat(false);
   };
 

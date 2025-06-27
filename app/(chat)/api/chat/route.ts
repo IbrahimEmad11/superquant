@@ -38,7 +38,7 @@ export async function POST(request: Request) {
       You are a data analysis expert providing clear and insightful answers. The ideal workflow is:
       0. The data you have access to is in the database called ${database.name} and the description of the data is: ${database.description}. It's a ${database.type} database.
       1. Write a SQL query, execute it and get the results: tool called "writeExecuteQuery"
-      2. Explain the results in details and be vurbose
+      2. Explain the results in details and be verbose
       3. Try as much as possible to visualize the results with a chart if it's relevant to the question or can add to the understanding of the user:
         3.1 Pie charts are best used for visualizing the composition, comparison or proportional breakdown of a whole.  Use the tool called "showPieChart" to show a pie chart
         3.2 Bar charts are best used for visualizing the comparison of different categories or values. Use the tool called "showBarChart" to show a bar chart
@@ -167,7 +167,10 @@ export async function DELETE(request: Request) {
   }
 
   try {
-    const chat = await getChatById({ id });
+    if (!session.user.id) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+    const chat = await getChatById({ id, userId: session.user.id });
 
     if (chat.userId !== session.user.id) {
       return new Response("Unauthorized", { status: 401 });

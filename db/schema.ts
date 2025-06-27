@@ -25,6 +25,8 @@ export const chat = pgTable("Chat", {
   userId: uuid("userId")
     .notNull()
     .references(() => user.id),
+  shareMode: varchar("shareMode", { length: 50 }).notNull().default('private'),
+  shareId: uuid("shareId").unique(),
 });
 
 export type Chat = Omit<InferSelectModel<typeof chat>, "messages"> & {

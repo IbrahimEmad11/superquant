@@ -19,16 +19,14 @@ export function WelcomeCard() {
           This is your <u>SuperQuant Dashboard</u>. You can start adding your
           charts from the chat to this panel to build your own report.
         </p>
-        <div className="flex flex-row gap-2">
+        {/* <div className="flex flex-row gap-2">
           <Button
             variant="outline"
             onClick={() => {}}
             className="text-xs w-[150px]"
           >
-            <PlayIcon className="mr-2" />
-            Watch Tutorial
           </Button>
-        </div>
+        </div> */}
       </div>
       {/* <Cross1Icon
         onClick={handleClose}

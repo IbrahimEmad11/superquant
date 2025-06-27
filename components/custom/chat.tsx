@@ -49,15 +49,15 @@ export function Chat({
   }, [database, setIsDatabaseConnectionDialogOpen]);
 
   return (
-    <div className="flex flex-col justify-between items-center">
-      <div className="flex flex-row justify-center py-4 md:pb-8 h-dvh">
-        <div className="flex flex-col justify-between items-center gap-4">
-          <div
-            ref={messagesContainerRef}
-            className="flex flex-col gap-4 h-full w-dvw items-center overflow-y-scroll"
-          >
+    <div className="flex flex-col h-full w-full">
+      {/* Messages Container - takes up available space */}
+      <div className="flex-1 overflow-hidden">
+        <div
+          ref={messagesContainerRef}
+          className="h-full overflow-y-auto px-4 pt-0"
+        >
+          <div className="flex flex-col min-h-full space-y-4 pb-[120px]">
             {messages.length === 0 && <Overview />}
-
             {messages.map((message) => (
               <PreviewMessage
                 key={message.id}
@@ -69,25 +69,29 @@ export function Chat({
               />
             ))}
 
-            <div
-              ref={messagesEndRef}
-              className="shrink-0 min-w-[24px] min-h-[24px]"
-            />
-          </div>
+            {/* Spacer to push last message above input */}
+            <div className="h-10" />
 
-          <form className="flex flex-row gap-2 relative items-end w-full md:max-w-[500px] max-w-[calc(100dvw-32px) px-4 md:px-0">
-            <MultimodalInput
-              input={input}
-              setInput={setInput}
-              handleSubmit={handleSubmit}
-              isLoading={isLoading}
-              stop={stop}
-              attachments={attachments}
-              setAttachments={setAttachments}
-              messages={messages}
-              append={append}
-            />
-          </form>
+            {/* Auto-scroll anchor */}
+            <div ref={messagesEndRef} />
+          </div>
+        </div>
+      </div>
+      
+      {/* Input Container - fixed at bottom with safe padding */}
+      <div className="shrink-0">
+        <div className="px-4 pb-3 pb-safe">
+          <MultimodalInput
+            input={input}
+            setInput={setInput}
+            handleSubmit={handleSubmit}
+            isLoading={isLoading}
+            stop={stop}
+            attachments={attachments}
+            setAttachments={setAttachments}
+            messages={messages}
+            append={append}
+          />
         </div>
       </div>
     </div>

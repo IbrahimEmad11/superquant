@@ -10,7 +10,7 @@ import {
   Node,
 } from "@xyflow/react";
 import { useTheme } from "next-themes";
-import { useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import useDashboardStore from "@/hooks/use-dashboard-store";
@@ -34,8 +34,14 @@ const initialNodes = [
   },
 ];
 
-export default function DashboardPanelFlow() {
-  const { theme } = useTheme();
+export default function DashboardPanelFlow({ isReadOnly = false }: { isReadOnly?: boolean }) {
+  const [isMounted, setIsMounted] = useState(false);
+  const { theme, resolvedTheme } = useTheme();
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const { nodes, onNodesChange, onConnect } = useDashboardStore(
     useShallow(selector)
   );
@@ -62,33 +68,53 @@ export default function DashboardPanelFlow() {
     }
   }, [nodes.length, fitView]);
 
+  // Prevent hydration mismatch by not rendering until mounted
+  if (!isMounted) {
+    return null; 
+  }
+
+  // Use resolvedTheme for more reliable theme detection
+  const isDarkMode = resolvedTheme === "dark" || theme === "dark";
+
   return (
     <ReactFlow
       proOptions={{ hideAttribution: true }}
-      colorMode={theme === "dark" ? "dark" : "light"}
+      colorMode={isDarkMode ? "dark" : "light"}
       nodes={nodes.length > 0 ? nodes : initialNodes}
-      onNodesChange={onNodesChange}
-      onConnect={onConnect}
       nodeTypes={nodeTypes}
       onLoad={onLoad}
       snapToGrid={true}
       snapGrid={[10, 10]}
       panOnScroll={true}
       selectionOnDrag={true}
-      panOnDrag={[1, 2]} // Enable panning with left and middle mouse buttons
-      zoomOnScroll={false} // Disable zoom on scroll
-      zoomOnPinch={true} // Enable zoom on pinch/wheel with modifier
-      zoomOnDoubleClick={false} // Disable zoom on double click
-      selectNodesOnDrag={true}
+      panOnDrag={[1, 2]}
+      zoomOnScroll={false}
+      zoomOnPinch={true}
+      zoomOnDoubleClick={false}
+      nodesDraggable={!isReadOnly}
+      nodesConnectable={!isReadOnly}
+      selectNodesOnDrag={!isReadOnly}
+      elementsSelectable={!isReadOnly}
+      onNodesChange={isReadOnly ? undefined : onNodesChange}
+      onConnect={isReadOnly ? undefined : onConnect}
     >
       <Background
-        color="#333333"
+        color={isDarkMode ? "#333333" : "#e5e7eb"}
         variant={BackgroundVariant.Dots}
         gap={15}
         size={1}
       />
-      <Controls />
-      <MiniMap style={{ width: 150, height: 100 }} />
+      {!isReadOnly && <Controls />}
+      <MiniMap 
+        style={{ 
+          width: 150, 
+          height: 100,
+          backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+          border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`
+        }} 
+        maskColor={isDarkMode ? 'rgba(0, 0, 0, 0.3)' : 'rgba(0, 0, 0, 0.1)'}
+        nodeColor={isDarkMode ? '#4b5563' : '#9ca3af'}
+      />
     </ReactFlow>
   );
 }

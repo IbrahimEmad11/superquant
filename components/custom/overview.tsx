@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+
 import { LogoOpenAI } from "./icons";
 
 export const Overview = () => {

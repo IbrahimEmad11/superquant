@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { SessionProvider } from "next-auth/react";
 import { Toaster } from "sonner";
 
 import { Navbar } from "@/components/custom/navbar";
@@ -7,9 +8,12 @@ import { ThemeProvider } from "@/components/custom/theme-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SuperQaunt | AI Data Analyst",
+  title: "SuperQuant | AI Data Analyst",
   description:
     "SuperQuant - Replace the need for data analysts in your company with AI",
+  icons: {
+    icon: '/images/superquant-logo.svg'
+  },
 };
 
 export default async function RootLayout({
@@ -20,6 +24,7 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
+        <SessionProvider> 
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -30,6 +35,7 @@ export default async function RootLayout({
           <Navbar />
           {children}
         </ThemeProvider>
+        </SessionProvider>
       </body>
     </html>
   );

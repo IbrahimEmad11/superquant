@@ -5,29 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1728635586378,
-      "tag": "0000_absurd_joshua_kane",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1734612158840,
-      "tag": "0001_chubby_makkari",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1734764363179,
-      "tag": "0002_small_preak",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1735115820932,
-      "tag": "0003_past_scarecrow",
+      "when": 1750380817071,
+      "tag": "0000_square_goblin_queen",
       "breakpoints": true
     }
   ]

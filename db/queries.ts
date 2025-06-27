@@ -1,18 +1,20 @@
 import "server-only";
 
+import { Node } from "@xyflow/react";
 import { genSaltSync, hashSync } from "bcrypt-ts";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
 import { user, chat, User, reservation } from "./schema";
-import { Node } from "@xyflow/react";
+import * as schema from "./schema";
+
 
 // Optionally, if not using email/pass login, you can
 // use the Drizzle adapter for Auth.js / NextAuth
 // https://authjs.dev/reference/adapter/drizzle
 let client = postgres(`${process.env.POSTGRES_URL!}?sslmode=require`);
-export let db = drizzle(client);
+export let db = drizzle(client, { schema });
 
 export async function getUser(email: string): Promise<Array<User>> {
   try {
@@ -107,9 +109,18 @@ export async function getChatsByUserId({ id }: { id: string }) {
   }
 }
 
-export async function getChatById({ id }: { id: string }) {
+export async function getChatById({
+  id,
+  userId,
+}: {
+  id: string;
+  userId: string;
+}) {
   try {
-    const [selectedChat] = await db.select().from(chat).where(eq(chat.id, id));
+    const [selectedChat] = await db
+      .select()
+      .from(chat)
+      .where(and(eq(chat.id, id), eq(chat.userId, userId))); 
     return selectedChat;
   } catch (error) {
     console.error("Failed to get chat by id from database");

@@ -5,20 +5,14 @@ import cx from "classnames";
 import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { User } from "next-auth";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import useSWR from "swr";
 
 import { Chat } from "@/db/schema";
+import { useHistoryPanel } from "@/hooks/use-history-panel";
 import { fetcher, generateUUID, getTitleFromChat } from "@/lib/utils";
 
-import {
-  InfoIcon,
-  MenuIcon,
-  MoreHorizontalIcon,
-  PencilEditIcon,
-  TrashIcon,
-} from "./icons";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,8 +37,14 @@ import {
   SheetHeader,
   SheetTitle,
 } from "../ui/sheet";
-import { useHistoryPanel } from "@/hooks/use-history-panel";
-import { createChatAction } from "@/app/(chat)/_lib/actions";
+
+import {
+  InfoIcon,
+  MenuIcon,
+  MoreHorizontalIcon,
+  PencilEditIcon,
+  TrashIcon,
+} from "./icons";
 
 export const History = ({ user }: { user: User | undefined }) => {
   const router = useRouter();
@@ -68,12 +68,14 @@ export const History = ({ user }: { user: User | undefined }) => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
-  const handleCreateChat = async () => {
-    setIsHistoryVisible(false);
-    const id = generateUUID();
-    await createChatAction(id);
-    router.push(`/chat/${id}`);
-  };
+  const handleCreateChat = useCallback(async () => {
+    setIsHistoryVisible(false); // Close history panel first
+    
+    // Small delay to let the animation complete
+    setTimeout(() => {
+      router.push("/start-chat");
+    }, 150);
+  }, [router]);
 
   const handleDelete = async () => {
     const deletePromise = fetch(`/api/chat?id=${deleteId}`, {
