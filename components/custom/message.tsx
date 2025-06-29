@@ -8,6 +8,11 @@ import {
   BarChartCard,
   LineChartCard,
   PieChartCard,
+  AreaChartCard,
+  ScatterChartCard,
+  DonutChartCard,
+  StackedBarChartCard,
+  RadarChartCard,
 } from "../generative-ui/charts";
 import { Weather } from "../generative-ui/weather";
 import AnimatedShinyText from "../ui/animated-shiny-text";
@@ -32,36 +37,75 @@ export const Message = ({
   isReadOnly?: boolean;
 }) => {
 
-  // Check if there's any visible content to render
   const hasContent = content && (typeof content === 'string' ? content.trim() : true);
   const hasAttachments = attachments && attachments.length > 0;
   
-  // Check if there are any visible tool invocations
+  // Updated to include the new consolidated chart tool
+  const chartTools = [
+    "getWeather",
+    "showChart", // New consolidated tool
+    // Keep these for backwards compatibility if needed
+    "showPieChart", 
+    "showBarChart", 
+    "showLineChart",
+    "showAreaChart",
+    "showScatterChart",
+    "showDonutChart",
+    "showStackedBarChart",
+    "showRadarChart"
+  ];
+  
   const hasVisibleTools = toolInvocations && toolInvocations.some(tool => {
     const { toolName, state } = tool;
-    
-    // Show if it's in call state (thinking...)
+
     if (state === "call") return true;
     
-    // Show if it's a result from a displayable tool
     if (state === "result") {
-      if (isThinkingTool(toolName)) return false; // Hide thinking tools
-      // Show known tools
-      return ["getWeather", "showPieChart", "showBarChart", "showLineChart"].includes(toolName);
+      if (isThinkingTool(toolName)) return false;
+      return chartTools.includes(toolName);
     }
-    
     return false;
   });
 
-  // If there's no visible content, don't render the message at all
   if (!hasContent && !hasAttachments && !hasVisibleTools) {
     return null;
   }
 
+  // Helper function to render chart based on type
+  const renderChartByType = (type: string, result: any, isReadOnly: boolean) => {
+    const commonProps = {
+      title: result.title,
+      caption: result.caption,
+      data: result.data,
+      noAddButton: isReadOnly
+    };
+
+    switch (type) {
+      case "pie":
+        return <PieChartCard {...commonProps} />;
+      case "bar":
+        return <BarChartCard {...commonProps} />;
+      case "line":
+        return <LineChartCard {...commonProps} />;
+      case "area":
+        return <AreaChartCard {...commonProps} />;
+      case "scatter":
+        return <ScatterChartCard {...commonProps} />;
+      case "donut":
+        return <DonutChartCard {...commonProps} />;
+      case "stackedBar":
+        return <StackedBarChartCard {...commonProps} />;
+      case "radar":
+        return <RadarChartCard {...commonProps} />;
+      default:
+        console.warn(`Unknown chart type: ${type}`);
+        return <div>Unsupported chart type: {type}</div>;
+    }
+  };
+
   const renderToolInvocation = (toolInvocation: ToolInvocation) => {
     const { toolName, toolCallId, state } = toolInvocation;
 
-    // Show "Thinking..." for any tool being called
     if (state === "call") {
       return (
         <div key={toolCallId} className="my-1">
@@ -72,38 +116,77 @@ export const Message = ({
       );
     }
 
-              if (state === "result") {
-                const { result } = toolInvocation;
+    if (state === "result") {
+      const { result } = toolInvocation;
 
       if (isThinkingTool(toolName)) {
         return null;
       }
+      
       return (
-                  <div key={toolCallId} className="my-1">
-                    {toolName === "getWeather" ? (
-                      <Weather weatherAtLocation={result} />
-                    ) : toolName === "showPieChart" ? (
-                      <PieChartCard
-                        title={result.title}
-                        caption={result.caption}
-                        data={result.data}
-                        noAddButton={isReadOnly}
-                      />
-                    ) : toolName === "showBarChart" ? (
-                      <BarChartCard
-                        title={result.title}
-                        caption={result.caption}
-                        data={result.data}
-                        noAddButton={isReadOnly} 
-                      />
-                    ) : toolName === "showLineChart" ? (
-                      <LineChartCard
-                        title={result.title}
-                        caption={result.caption}
-                        data={result.data}
-                        noAddButton={isReadOnly} 
-                      />
-                    ) : null}
+        <div key={toolCallId} className="my-1">
+          {toolName === "getWeather" ? (
+            <Weather weatherAtLocation={result} />
+          ) : toolName === "showChart" ? (
+            // Handle the new consolidated chart tool
+            renderChartByType(result.type, result, isReadOnly)
+          ) : toolName === "showPieChart" ? (
+            <PieChartCard
+              title={result.title}
+              caption={result.caption}
+              data={result.data}
+              noAddButton={isReadOnly}
+            />
+          ) : toolName === "showBarChart" ? (
+            <BarChartCard
+              title={result.title}
+              caption={result.caption}
+              data={result.data}
+              noAddButton={isReadOnly} 
+            />
+          ) : toolName === "showLineChart" ? (
+            <LineChartCard
+              title={result.title}
+              caption={result.caption}
+              data={result.data}
+              noAddButton={isReadOnly} 
+            />
+          ) : toolName === "showAreaChart" ? (
+            <AreaChartCard
+              title={result.title}
+              caption={result.caption}
+              data={result.data}
+              noAddButton={isReadOnly} 
+            />
+          ) : toolName === "showScatterChart" ? (
+            <ScatterChartCard
+              title={result.title}
+              caption={result.caption}
+              data={result.data}
+              noAddButton={isReadOnly} 
+            />
+          ) : toolName === "showDonutChart" ? (
+            <DonutChartCard
+              title={result.title}
+              caption={result.caption}
+              data={result.data}
+              noAddButton={isReadOnly} 
+            />
+          ) : toolName === "showStackedBarChart" ? (
+            <StackedBarChartCard
+              title={result.title}
+              caption={result.caption}
+              data={result.data}
+              noAddButton={isReadOnly} 
+            />
+          ) : toolName === "showRadarChart" ? (
+            <RadarChartCard
+              title={result.title}
+              caption={result.caption}
+              data={result.data}
+              noAddButton={isReadOnly} 
+            />
+          ) : null}
         </div>
       );
     }
