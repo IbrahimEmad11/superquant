@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { Message as PreviewMessage } from "@/components/custom/message";
 import { useScrollToBottom } from "@/components/custom/use-scroll-to-bottom";
 import { Database } from "@/db/schema";
+import { useChatTitle } from "@/hooks/use-chat-title";
 import { useDatabaseConnectionDialog } from "@/hooks/use-database-connection-dialog";
 
 import { MultimodalInput } from "./multimodal-input";
@@ -16,15 +17,19 @@ export function Chat({
   id,
   initialMessages,
   database,
+  initialTitle,
 }: {
   id: string;
   initialMessages: Array<Message>;
   database: Database | null;
+  initialTitle?: string;
 }) {
   const {
     isOpen: isDatabaseConnectionDialogOpen,
     setIsOpen: setIsDatabaseConnectionDialogOpen,
   } = useDatabaseConnectionDialog();
+
+  const { generateTitle } = useChatTitle(id, initialTitle);
 
   const { messages, handleSubmit, input, setInput, append, isLoading, stop } =
     useChat({
@@ -48,8 +53,15 @@ export function Chat({
     }
   }, [database, setIsDatabaseConnectionDialogOpen]);
 
+  // Generate title after 2nd message (user + assistant)
+  useEffect(() => {
+    if (messages.length >= 2 && (!initialTitle || initialTitle === 'New Chat')) {
+      generateTitle(messages, database);
+    }
+  }, [messages.length, generateTitle, initialTitle, database]);
+
   return (
-    <div className="flex flex-col h-full w-full">
+    <div className="flex flex-col size-full">
       {/* Messages Container - takes up available space */}
       <div className="flex-1 overflow-hidden">
         <div

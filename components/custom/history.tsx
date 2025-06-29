@@ -10,8 +10,9 @@ import { toast } from "sonner";
 import useSWR from "swr";
 
 import { Chat } from "@/db/schema";
+import { useChatTitle } from "@/hooks/use-chat-title";
 import { useHistoryPanel } from "@/hooks/use-history-panel";
-import { fetcher, generateUUID, getTitleFromChat } from "@/lib/utils";
+import { fetcher, generateUUID } from "@/lib/utils";
 
 import {
   AlertDialog,
@@ -45,6 +46,21 @@ import {
   PencilEditIcon,
   TrashIcon,
 } from "./icons";
+
+function AnimatedChatTitle({ chat }: { chat: Chat }) {
+  const { title, isGenerating } = useChatTitle(chat.id, chat.title ?? undefined);
+
+  return (
+    <span className="flex items-center gap-2 text-sm">
+      <span className="text-ellipsis overflow-hidden">
+        {title}
+      </span>
+      {isGenerating && (
+        <div className="size-3 border border-gray-300 border-t-blue-600 rounded-full animate-spin shrink-0" />
+      )}
+    </span>
+  );
+}
 
 export const History = ({ user }: { user: User | undefined }) => {
   const router = useRouter();
@@ -116,7 +132,7 @@ export const History = ({ user }: { user: User | undefined }) => {
           setIsHistoryVisible(state);
         }}
       >
-        <SheetContent side="left" className="p-3 w-80 bg-muted">
+        <SheetContent side="left" className="p-3 w-96 bg-muted">
           <SheetHeader>
             <VisuallyHidden.Root>
               <SheetTitle className="text-left">History</SheetTitle>
@@ -192,9 +208,9 @@ export const History = ({ user }: { user: User | undefined }) => {
                     >
                       <Link
                         href={`/chat/${chat.id}`}
-                        className="text-ellipsis overflow-hidden text-left py-2 pl-2 rounded-lg outline-zinc-900"
+                        className="text-ellipsis overflow-hidden text-left py-2 pl-2 rounded-lg outline-zinc-900 flex items-center"
                       >
-                        {getTitleFromChat(chat)}
+                        <AnimatedChatTitle chat={chat} />
                       </Link>
                     </Button>
 

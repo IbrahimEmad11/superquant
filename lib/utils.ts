@@ -126,13 +126,15 @@ export function convertToUIMessages(
   }, []);
 }
 
-export function getTitleFromChat(chat: Chat) {
-  const messages = convertToUIMessages(chat.messages as Array<CoreMessage>);
-  const firstMessage = messages[0];
+// ----------------> NOT USED ANYMORE <----------------
 
-  if (!firstMessage) {
-    return "Untitled";
-  }
+// export function getTitleFromChat(chat: Chat) {
+//   const messages = convertToUIMessages(chat.messages as Array<CoreMessage>);
+//   const firstMessage = messages[0];
 
-  return firstMessage.content;
-}
+//   if (!firstMessage) {
+//     return "Untitled";
+//   }
+
+//   return firstMessage.content;
+// }

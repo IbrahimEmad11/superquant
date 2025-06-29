@@ -95,6 +95,26 @@ export default function DatabaseConnectionDialog({
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  const validateName = (name: string): boolean => {
+    return name.trim().length >= 1;
+  };
+
+  const validateDescription = (description: string): boolean => {
+    return description.trim().length >= 1;
+  };
+
+  const validateAllFields = (): boolean => {
+    return validateName(databaseName) && validateDescription(databaseDescription);
+  };
+
+  const handleNameChange = (value: string) => {
+    setDatabaseName(value);
+  };
+
+  const handleDescriptionChange = (value: string) => {
+    setDatabaseDescription(value);
+  };
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     setIsUploading(true);
     const file = event.target.files?.[0];   
@@ -181,6 +201,14 @@ export default function DatabaseConnectionDialog({
   };
   
   const handleSubmit = async () => {
+    if (!validateAllFields()) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    if (!connectionString) {
+      toast.error("Please provide a connection string or upload a file");
+      return;
+    }
     setIsProcessing(true);
     setCurrentStep('testing');
     
@@ -259,8 +287,12 @@ export default function DatabaseConnectionDialog({
   };
 
   const handleTestConnection = async () => {
+    if (!validateAllFields()) {
+      toast.error("Please fill in name and description before testing connection");
+      return;
+    }
     if (!databaseProvider || !connectionString) {
-      toast.error("Please fill in all fields");
+      toast.error("Please provide a connection string or upload a file");
       return;
     }
 
@@ -295,6 +327,8 @@ export default function DatabaseConnectionDialog({
       }
     }
   };
+
+  const isFieldsValid = validateAllFields();
 
   return (
     <>
@@ -351,21 +385,29 @@ export default function DatabaseConnectionDialog({
                 ))}
               </div>
             </div>
-            <div className="flex flex-col gap-4">
-              <Label>Database Name</Label>
+
+            <div className="flex flex-col gap-2">
+              <Label className="flex items-center gap-1">
+                Database Name
+                <span className="text-red-500">*</span>
+              </Label>
               <Input
                 placeholder="Enter your database name"
                 value={databaseName}
-                onChange={(e) => setDatabaseName(e.target.value)}
+                onChange={(e) => handleNameChange(e.target.value)}
                 disabled={isProcessing}
               />
             </div>
-            <div className="flex flex-col gap-4">
-              <Label>Database Description</Label>
+
+            <div className="flex flex-col gap-2">
+              <Label className="flex items-center gap-1">
+                Database Description
+                <span className="text-red-500">*</span>
+              </Label>
               <TextareaWithCounter
-                placeholder="Describe your database schema, tables, relationships, and any important details..."
+                placeholder="Brief description of your database structure and purpose"
                 value={databaseDescription}
-                onChange={(e) => setDatabaseDescription(e.target.value)}
+                onChange={(e) => handleDescriptionChange(e.target.value)}
                 maxLength={2000}
                 disabled={isProcessing}
                 showCounter={true}
@@ -445,7 +487,7 @@ export default function DatabaseConnectionDialog({
             <Button 
               variant="outline" 
               onClick={handleTestConnection}
-              disabled={isProcessing}
+              disabled={isProcessing || !isFieldsValid}
             >
               Test Connection
             </Button>

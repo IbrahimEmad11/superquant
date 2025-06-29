@@ -40,14 +40,22 @@ export async function createUser(email: string, password: string) {
 export async function createChat({
   id,
   userId,
+  title,
 }: {
   id: string;
   userId: string;
+  title?: string;
 }) {
   try {
     return await db
       .insert(chat)
-      .values({ id, userId, createdAt: new Date(), messages: [] });
+      .values({ 
+        id, 
+        userId, 
+        createdAt: new Date(), 
+        messages: [],
+        title: title || null 
+      });
   } catch (error) {
     console.error("Failed to create chat in database");
     throw error;
@@ -80,6 +88,7 @@ export async function saveChat({
       createdAt: new Date(),
       messages: JSON.stringify(messages),
       userId,
+      title: null,
     });
   } catch (error) {
     console.error("Failed to save chat in database");
@@ -124,6 +133,26 @@ export async function getChatById({
     return selectedChat;
   } catch (error) {
     console.error("Failed to get chat by id from database");
+    throw error;
+  }
+}
+
+export async function updateChatTitle({
+  id,
+  title,
+  userId,
+}: {
+  id: string;
+  title: string;
+  userId: string;
+}) {
+  try {
+    return await db
+      .update(chat)
+      .set({ title })
+      .where(and(eq(chat.id, id), eq(chat.userId, userId)));
+  } catch (error) {
+    console.error("Failed to update chat title");
     throw error;
   }
 }
