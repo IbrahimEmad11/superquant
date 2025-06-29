@@ -82,7 +82,7 @@ export async function POST(request: Request) {
 
     const result = await streamText({
       model: openai("gpt-3.5-turbo"),
-      temperature: 0.5,
+      temperature: 0,
       system: `
         You are a data analysis expert providing clear and insightful answers. You have access to a database called "${database.name}" which is described as: "${database.description}". It's a ${database.type} database.
 
