@@ -143,49 +143,61 @@ export async function POST(request: Request) {
       model: openai("gpt-4o-mini"),
       temperature: 0.5,
       system: `
-        You are a data analysis expert providing clear and insightful answers. You have access to a database called "${database.name}" which is described as: "${database.description}". It's a ${database.type} database.
+          You are a data analysis expert providing clear and insightful answers. You have access to a database called "${database.name}" which is described as: "${database.description}". It's a ${database.type} database.
 
-        You have access to the full conversation history to maintain context about:
-        - Previous queries and their results
-        - Ongoing analysis threads
-        - User preferences and requirements
-        - Database schema discoveries
+          You have access to the full conversation history to maintain context about:
+          - Previous queries and their results
+          - Ongoing analysis threads
+          - User preferences and requirements
+          - Database schema discoveries
 
-        CRITICAL SAFETY RULES - ALWAYS FOLLOW THESE:
-        1. NEVER expose sensitive information like passwords, API keys, personal identifiers, or connection strings
-        2. NEVER execute queries that could modify, delete, or insert data (only SELECT statements)
-        3. NEVER reveal database connection details, table structures beyond what's needed for analysis
-        4. If asked about system tables, internal schemas, or metadata, politely decline
-        5. If a query fails, explain the issue without revealing internal error details
-        6. Always validate that your analysis is based on actual data returned from queries
-        7. If no data is found, clearly state "No data available" rather than making assumptions
+          CRITICAL SAFETY RULES - ALWAYS FOLLOW THESE:
+          1. NEVER expose sensitive information like passwords, API keys, personal identifiers, or connection strings
+          2. NEVER execute queries that could modify, delete, or insert data (only SELECT statements)
+          3. NEVER reveal database connection details, table structures beyond what's needed for analysis
+          4. If asked about system tables, internal schemas, or metadata, politely decline
+          5. If a query fails, explain the issue without revealing internal error details
+          6. Always validate that your analysis is based on actual data returned from queries
+          7. If no data is found, clearly state "No data available" rather than making assumptions
 
-        CONTEXT AWARENESS:
-        - Reference previous queries and results when relevant
-        - Build upon earlier analysis
-        - Remember user's specific interests and requirements
-        - Maintain consistency in your analysis approach
+          CONTEXT AWARENESS:
+          - Reference previous queries and results when relevant
+          - Build upon earlier analysis
+          - Remember user's specific interests and requirements
+          - Maintain consistency in your analysis approach
 
-        WORKFLOW - FOLLOW THIS EXACT SEQUENCE:
-        1. Write and execute a SQL query using the "writeExecuteQuery" tool
-           - For scatter plots and large datasets: ALWAYS use LIMIT (e.g., LIMIT 50-100)
-           - Use aggregation (GROUP BY, AVG, SUM, COUNT) when possible for better insights
-        2. Analyze the actual results returned - do not make assumptions about data not returned
-        3. Provide detailed explanations based ONLY on the query results
-        4. If visualization would help understanding, create appropriate charts using "showChart"
-        5. Always cite the specific data points you're discussing
+          WORKFLOW - FOLLOW THIS EXACT SEQUENCE:
+          1. Write and execute a SQL query using the "writeExecuteQuery" tool
+            - For scatter plots and large datasets: ALWAYS use LIMIT (e.g., LIMIT 50-100)
+            - Use aggregation (GROUP BY, AVG, SUM, COUNT) when possible for better insights
+          2. Analyze the actual results returned - do not make assumptions about data not returned
+          3. Provide detailed explanations based ONLY on the query results
+          4. If visualization would help understanding, create appropriate charts using "showChart"
+          5. Always cite the specific data points you're discussing
 
-        CHART DATA OPTIMIZATION:
-        - Keep data points under 100 for performance and context management
-        - For scatter plots, sample or aggregate data meaningfully
-        - Truncate long labels to keep charts readable
-      `,
+          CHARTING INSTRUCTIONS:
+          - For single-series charts (pie, bar), use the 'value' key for data points.
+          - For multi-series charts (area, line, stackedBar), use descriptive keys (e.g., 'revenue', 'quantity') and provide these keys in the 'dataKeys' array.
+          - Example for a multi-area chart: dataKeys: ['revenue', 'quantity'], data: [{ label: 'Jan', revenue: 100, quantity: 10 }, ...]
+          
+          STACKED BAR CHART SPECIFIC RULES:
+          - For stacked bar charts, ensure your SQL query returns multiple numeric columns that represent different segments
+          - Structure data like: [{ label: 'Category A', segment1: 30, segment2: 20, segment3: 15 }, { label: 'Category B', segment1: 25, segment2: 35, segment3: 10 }]
+          - Always provide dataKeys array: ['segment1', 'segment2', 'segment3']
+          - Each row represents ONE bar with multiple colored segments stacked on top of each other
+          - Example: For sales by region and quarter, query should return: label (region), q1_sales, q2_sales, q3_sales, q4_sales
+          
+          CHART DATA OPTIMIZATION:
+          - Keep data points under 100 for performance and context management
+          - For scatter plots, sample or aggregate data meaningfully
+          - Truncate long labels to keep charts readable
+        `,
       messages: managedMessages,
       maxSteps: 5,
       tools: {
         writeExecuteQuery: await generateSqlWriteExecuteTool(database),
         
-        showChart: {
+      showChart: {
           description: "Show various types of charts when relevant to the question or can add to the understanding of the user",
           parameters: z.object({
             type: z.enum([
@@ -193,19 +205,12 @@ export async function POST(request: Request) {
             ]).describe("The type of chart to display"),
             title: z.string().describe("The title of the chart"),
             caption: z.string().describe("The caption of the chart"),
+            dataKeys: z.array(z.string()).optional().describe("Array of keys to plot for multi-series charts, e.g., ['revenue', 'quantity']"),
             data: z.array(
-              z.object({
-                label: z.string().describe("The label of the chart (keep concise)"),
-                value: z.number().describe("The primary value of the chart"),
-                value2: z.number().optional().describe("The secondary value for stacking (stackedBar only)"),
-                value3: z.number().optional().describe("The tertiary value for stacking (stackedBar only)"),
-                x: z.number().optional().describe("The x-axis value for scatter charts"),
-                y: z.number().optional().describe("The y-axis value for scatter charts"),
-                fill: z.string().describe("The color of the chart in a valid css color format (hex code preferred)"),
-              })
-            ).max(100).describe("Chart data - limit to 100 points maximum"),
+              z.record(z.string(), z.any()) // Allows any object structure, e.g., { month: 'Jan', revenue: 100, quantity: 10 }
+            ).max(100),
           }),
-          execute: async ({ type, title, caption, data }) => {
+          execute: async ({ type, title, caption, data, dataKeys }) => {
             const limitedData = data.slice(0, 100);
             
             interface ChartDataItem {
@@ -216,6 +221,7 @@ export async function POST(request: Request) {
               x?: number;
               y?: number;
               fill?: string;
+              [key: string]: any;
             }
 
             interface ProcessedChartDataItem {
@@ -225,38 +231,59 @@ export async function POST(request: Request) {
               value3?: number;
               x?: number;
               y?: number;
-              fill: string;
+              fill?: string;
+              [key: string]: any; 
             }
 
             const processedData: ProcessedChartDataItem[] = limitedData.map((item: ChartDataItem, index: number): ProcessedChartDataItem => {
-              const truncatedLabel: string = item.label.length > 25 ? 
-                item.label.substring(0, 25) + "..." : 
-                item.label;
+              const truncatedLabel: string = item.label?.toString().length > 25 ? 
+                item.label.toString().substring(0, 25) + "..." : 
+                item.label?.toString() || `Item ${index + 1}`;
               
               const baseItem: ProcessedChartDataItem = {
                 label: truncatedLabel,
-                value: item.value,
                 fill: item.fill || `hsl(${index * 360 / limitedData.length}, 70%, 50%)`
               };
 
               if (type === 'scatter') {
                 return {
-                  label: truncatedLabel,
+                  ...baseItem,
                   x: item.x ?? item.value,
                   y: item.y ?? item.value,
-                  fill: baseItem.fill
                 };
               }
 
-              if (type === 'stackedBar') {
+              if ((type === 'area' || type === 'stackedBar') && dataKeys && dataKeys.length > 0) {
+                dataKeys.forEach((key: string | number) => {
+                  if (item[key] !== undefined) {
+                    baseItem[key] = item[key];
+                  }
+                });
+
+                if (type === 'stackedBar') {
+                  delete baseItem.fill;
+                }
+                
+                return baseItem;
+              }
+
+              const hasMultipleValues = item.value2 !== undefined || item.value3 !== undefined;
+              
+              if (type === 'stackedBar' && hasMultipleValues) {
                 return {
-                  ...baseItem,
+                  label: truncatedLabel,
+                  value: item.value,
                   value2: item.value2,
-                  value3: item.value3
+                  value3: item.value3,
                 };
               }
 
-              return baseItem;
+              return {
+                ...baseItem,
+                value: item.value,
+                value2: item.value2,
+                value3: item.value3,
+              };
             });
 
             const wasLimited = data.length > 100;
@@ -264,10 +291,15 @@ export async function POST(request: Request) {
               `${caption} (Showing first 100 of ${data.length} data points)` : 
               caption;
 
-            return { type, title, caption: finalCaption, data: processedData };
+            return { 
+              type, 
+              title, 
+              caption: finalCaption, 
+              data: processedData,
+              dataKeys
+            };
           },
         },
-
         getWeather: {
           description: "Get the current weather at a location",
           parameters: z.object({
