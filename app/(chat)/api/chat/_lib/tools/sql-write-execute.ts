@@ -11,12 +11,30 @@ import { InMemorySQLiteHandler } from '@/lib/sqlite-handler';
 
 export async function generateSqlWriteExecuteTool(database: AppDatabaseSchema) {
   const sqlWriteExecuteTool = tool({
-    description: 'Write and execute a SQL query to answer a question about the database.',
+    description: 'Write and execute a SQL query to answer a question about the database. Only SELECT statements are allowed for security.',
     parameters: z.object({
       question: z.string().describe('The natural language question to answer'),
     }),
     execute: async ({ question }) => {
       try {
+        // SECURITY: Validate question doesn't contain dangerous keywords
+        const dangerousKeywords = [
+          'DROP', 'DELETE', 'INSERT', 'UPDATE', 'ALTER', 'CREATE', 'TRUNCATE',
+          'GRANT', 'REVOKE', 'EXEC', 'EXECUTE', 'xp_', 'sp_', '--', '/*', '*/',
+          'UNION', 'INFORMATION_SCHEMA', 'sys.', 'master.', 'tempdb.'
+        ];
+        
+        const upperQuestion = question.toUpperCase();
+        for (const keyword of dangerousKeywords) {
+          if (upperQuestion.includes(keyword)) {
+            return JSON.stringify({
+              error: "Query blocked for security reasons",
+              details: "The question contains potentially dangerous SQL keywords",
+              suggestion: "Please rephrase your question to focus on data analysis only."
+            }, null, 2);
+          }
+        }
+
         if (database.type === 'sqlite') {
           console.log('Processing SQLite query for question:', question);
           
@@ -29,15 +47,15 @@ export async function generateSqlWriteExecuteTool(database: AppDatabaseSchema) {
             console.error('Failed to get database metadata:', metadataError);
             return JSON.stringify({
               error: "Failed to retrieve database schema",
-              details: metadataError instanceof Error ? metadataError.message : 'Unknown error',
-              suggestion: "Please verify the database file is accessible and not corrupted."
+              details: "Database connection issue",
+              suggestion: "Please verify the database file is accessible."
             }, null, 2);
           }
           
           if (metadata.tables.length === 0) {
             return JSON.stringify({
               message: "No tables found in the database",
-              suggestion: "The database appears to be empty or all tables are system tables."
+              suggestion: "The database appears to be empty."
             }, null, 2);
           }
 
@@ -64,7 +82,7 @@ export async function generateSqlWriteExecuteTool(database: AppDatabaseSchema) {
             databaseContext += '\n';
           }
 
-          // 3. Use OpenAI to generate SQL query with better context
+          // 3. Use OpenAI to generate SQL query with better context and security constraints
           let llm;
           try {
             llm = new ChatOpenAI({ 
@@ -79,19 +97,21 @@ export async function generateSqlWriteExecuteTool(database: AppDatabaseSchema) {
             }, null, 2);
           }
           
-          const sqlPrompt = `Given the following SQLite database schema and a user question, generate a valid SQLite query to answer the question.
+          const sqlPrompt = `Given the following SQLite database schema and a user question, generate a valid SQLite SELECT query to answer the question.
 
 ${databaseContext}
 
 User Question: ${question}
 
-Requirements:
-- Generate ONLY the SQL query, no explanations
+CRITICAL REQUIREMENTS:
+- Generate ONLY a SELECT query - NO INSERT, UPDATE, DELETE, DROP, CREATE, or ALTER statements
 - Use double quotes for table and column names if they contain spaces or special characters
 - Use SQLite syntax and functions (like strftime for date formatting)
 - Make sure the query is valid and executable
 - Use appropriate JOINs if multiple tables are needed
 - If the question cannot be answered with the available data, return: SELECT 'Data not available for this question' as message
+- NEVER access system tables or internal SQLite tables
+- Limit results to reasonable amounts (use LIMIT if needed)
 
 SQL Query:`;
 
@@ -101,8 +121,8 @@ SQL Query:`;
           } catch (aiError) {
             return JSON.stringify({
               error: "Failed to generate SQL query",
-              details: aiError instanceof Error ? aiError.message : 'AI service error',
-              suggestion: "Please try rephrasing your question or check the AI service status."
+              details: "AI service error",
+              suggestion: "Please try rephrasing your question."
             }, null, 2);
           }
 
@@ -112,6 +132,32 @@ SQL Query:`;
           sqlQuery = sqlQuery.replace(/^```sql\s*\n?/, '').replace(/\n?```$/, '').trim();
           sqlQuery = sqlQuery.replace(/^SQL Query:\s*/, '').trim();
           sqlQuery = sqlQuery.replace(/^Query:\s*/, '').trim();
+          
+          // SECURITY: Final validation - ensure it's a SELECT query
+          if (!sqlQuery.toUpperCase().trim().startsWith('SELECT')) {
+            return JSON.stringify({
+              error: "Invalid query type generated",
+              details: "Only SELECT queries are allowed for security",
+              suggestion: "Please rephrase your question to focus on data retrieval."
+            }, null, 2);
+          }
+          
+          // SECURITY: Check for dangerous patterns in the generated query
+          const dangerousPatterns = [
+            /DROP\s+/i, /DELETE\s+/i, /INSERT\s+/i, /UPDATE\s+/i, /ALTER\s+/i, /CREATE\s+/i,
+            /TRUNCATE\s+/i, /GRANT\s+/i, /REVOKE\s+/i, /EXEC\s+/i, /EXECUTE\s+/i,
+            /xp_/i, /sp_/i, /--/, /\/\*/, /\*\//, /UNION\s+ALL/i, /UNION\s+SELECT/i
+          ];
+          
+          for (const pattern of dangerousPatterns) {
+            if (pattern.test(sqlQuery)) {
+              return JSON.stringify({
+                error: "Generated query contains dangerous patterns",
+                details: "Query blocked for security reasons",
+                suggestion: "Please rephrase your question."
+              }, null, 2);
+            }
+          }
           
           console.log('Generated SQL query:', sqlQuery);
           
@@ -123,14 +169,11 @@ SQL Query:`;
           } catch (queryError) {
             console.error('Query execution failed:', queryError);
             
-            // Try to provide helpful error messages
-            const errorMessage = queryError instanceof Error ? queryError.message : 'Unknown query error';
-            
+            // Provide helpful error messages without exposing internal details
             return JSON.stringify({
               error: "Query execution failed",
-              query: sqlQuery,
-              details: errorMessage,
-              suggestion: "The generated query may have syntax errors or reference non-existent columns. Please try rephrasing your question."
+              details: "The query could not be executed successfully",
+              suggestion: "Please try rephrasing your question or check if the data you're looking for exists."
             }, null, 2);
           }
           
@@ -162,8 +205,11 @@ SQL Query:`;
         return await chain.invoke({ question });
       } catch (error) {
         console.error("Error during SQL tool execution:", error);
-        const errorMessage = (error instanceof Error) ? error.message : String(error);
-        return `An error occurred while processing the query: ${errorMessage}`;
+        return JSON.stringify({
+          error: "An error occurred while processing the query",
+          details: "Internal processing error",
+          suggestion: "Please try again or rephrase your question."
+        }, null, 2);
       }
     },
   });
