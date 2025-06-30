@@ -14,23 +14,23 @@ function estimateTokenCount(messages: any[]): number {
   let totalTokens = 0;
   for (const message of messages) {
     if (typeof message.content === 'string') {
-      totalTokens += Math.ceil(message.content.length / 4);
+      totalTokens += Math.ceil(message.content.length / 3.5);
     } else if (Array.isArray(message.content)) {
       for (const part of message.content) {
         if (part.type === 'text' && typeof part.text === 'string') {
-          totalTokens += Math.ceil(part.text.length / 4);
+          totalTokens += Math.ceil(part.text.length / 3.5);
         }
       }
     }
-    totalTokens += 10;
+    // Account for message metadata
+    totalTokens += 15;
   }
   return totalTokens;
 }
 
-function manageContext(messages: any[], maxContextTokens: number = 12000) {
+function manageContext(messages: any[], maxContextTokens: number = 100000) {
   let currentMessages = [...messages];
   let estimatedTokens = estimateTokenCount(currentMessages);
-  
   if (estimatedTokens <= maxContextTokens) {
     return currentMessages;
   }
@@ -39,19 +39,52 @@ function manageContext(messages: any[], maxContextTokens: number = 12000) {
   
   const systemMessage = currentMessages[0]?.role === 'system' ? currentMessages[0] : null;
   
-  if (systemMessage && currentMessages.length > 4) {
-    currentMessages = [systemMessage, ...currentMessages.slice(-3)];
-  } else if (currentMessages.length > 3) {
-    currentMessages = currentMessages.slice(-3);
+  if (systemMessage) {
+
+    const nonSystemMessages = currentMessages.slice(1);
+    let keptMessages = [systemMessage];
+    let runningTokens = estimateTokenCount([systemMessage]);
+
+    for (let i = nonSystemMessages.length - 1; i >= 0; i--) {
+      const messageTokens = estimateTokenCount([nonSystemMessages[i]]);
+      
+      if (runningTokens + messageTokens <= maxContextTokens) {
+        keptMessages.splice(1, 0, nonSystemMessages[i]);
+        runningTokens += messageTokens;
+      } else {
+        break;
+      }
+    }
+    
+    currentMessages = keptMessages;
+  } else {
+    let keptMessages = [];
+    let runningTokens = 0;
+    
+    for (let i = currentMessages.length - 1; i >= 0; i--) {
+      const messageTokens = estimateTokenCount([currentMessages[i]]);
+      
+      if (runningTokens + messageTokens <= maxContextTokens) {
+        keptMessages.unshift(currentMessages[i]);
+        runningTokens += messageTokens;
+      } else {
+        break;
+      }
+    }
+    currentMessages = keptMessages;
   }
   
+  // Only truncate individual messages if we're still over limit
   estimatedTokens = estimateTokenCount(currentMessages);
   if (estimatedTokens > maxContextTokens) {
-    currentMessages = currentMessages.map(msg => {
-      if (typeof msg.content === 'string' && msg.content.length > 2000) {
+    // Truncate the longest non-system messages first
+    currentMessages = currentMessages.map((msg, index) => {
+      if (msg.role === 'system') return msg; 
+      
+      if (typeof msg.content === 'string' && msg.content.length > 5000) {
         return {
           ...msg,
-          content: msg.content.substring(0, 2000) + "...[truncated for context management]"
+          content: msg.content.substring(0, 4000) + "\n\n...[Message truncated for context management]"
         };
       }
       return msg;
@@ -59,7 +92,7 @@ function manageContext(messages: any[], maxContextTokens: number = 12000) {
   }
   
   const finalTokens = estimateTokenCount(currentMessages);
-  console.log(`Context after management: ${finalTokens} tokens`);
+  console.log(`Context after management: ${finalTokens} tokens (${currentMessages.length} messages)`);
   
   return currentMessages;
 }
@@ -80,7 +113,7 @@ export async function POST(request: Request) {
     }
 
     // ABUSE PREVENTION: Limit message length and frequency
-    if (messages.length > 50) {
+    if (messages.length > 100) { // Increased from 50 since we can handle more context
       return new Response("Too many messages in request", { status: 400 });
     }
 
@@ -95,7 +128,7 @@ export async function POST(request: Request) {
       (message) => message.content.length > 0
     );
 
-    const managedMessages = manageContext(coreMessages, 12000);
+    const managedMessages = manageContext(coreMessages, 100000);
 
     // DATABASE ACCESS
     const database = await getChatDatabase(id);
@@ -112,6 +145,12 @@ export async function POST(request: Request) {
       system: `
         You are a data analysis expert providing clear and insightful answers. You have access to a database called "${database.name}" which is described as: "${database.description}". It's a ${database.type} database.
 
+        You have access to the full conversation history to maintain context about:
+        - Previous queries and their results
+        - Ongoing analysis threads
+        - User preferences and requirements
+        - Database schema discoveries
+
         CRITICAL SAFETY RULES - ALWAYS FOLLOW THESE:
         1. NEVER expose sensitive information like passwords, API keys, personal identifiers, or connection strings
         2. NEVER execute queries that could modify, delete, or insert data (only SELECT statements)
@@ -120,6 +159,12 @@ export async function POST(request: Request) {
         5. If a query fails, explain the issue without revealing internal error details
         6. Always validate that your analysis is based on actual data returned from queries
         7. If no data is found, clearly state "No data available" rather than making assumptions
+
+        CONTEXT AWARENESS:
+        - Reference previous queries and results when relevant
+        - Build upon earlier analysis
+        - Remember user's specific interests and requirements
+        - Maintain consistency in your analysis approach
 
         WORKFLOW - FOLLOW THIS EXACT SEQUENCE:
         1. Write and execute a SQL query using the "writeExecuteQuery" tool
